@@ -351,3 +351,47 @@ export async function importGuests(
   await persistEvent(event);
   return result;
 }
+
+export type EventHubBackup = {
+  format: "eventhub-backup";
+  version: 1;
+  exportedAt: string;
+  events: EventItem[];
+};
+
+export async function exportBackup(): Promise<EventHubBackup> {
+  return {
+    format: "eventhub-backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    events: await listEvents(),
+  };
+}
+
+export async function importBackup(
+  value: unknown,
+  mode: "merge" | "replace" = "merge"
+): Promise<{ imported: number }> {
+  const backup = value as Partial<EventHubBackup>;
+  if (backup.format !== "eventhub-backup" || backup.version !== 1) {
+    throw new Error("Arquivo de backup inválido ou incompatível.");
+  }
+  if (!Array.isArray(backup.events)) {
+    throw new Error("O backup não contém uma lista válida de eventos.");
+  }
+
+  await ensureDatabase();
+  const sql = database();
+  if (mode === "replace") {
+    await sql`DELETE FROM eventhub_events`;
+  }
+
+  let imported = 0;
+  for (const rawEvent of backup.events) {
+    const event = normalizeEvent(rawEvent);
+    if (!event.id || !event.slug || !event.name) continue;
+    await persistEvent(event);
+    imported += 1;
+  }
+  return { imported };
+}
