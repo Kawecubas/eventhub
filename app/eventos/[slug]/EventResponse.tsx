@@ -1,133 +1,201 @@
-import { notFound } from "next/navigation";
+"use client";
 
-import { findGuest, getEventBySlug } from "@/lib/event-platform-store";
-import EventResponse from "./EventResponse";
+import { useState, type FormEvent } from "react";
 
-import "./public.css";
+import type {
+  EventGuest,
+  EventItem,
+} from "@/lib/event-platform-store";
 
-export const dynamic = "force-dynamic";
-
-type PageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
-  searchParams: Promise<{
-    token?: string | string[];
-  }>;
+type EventResponseProps = {
+  event: EventItem;
+  guest: EventGuest | null;
+  error?: string | null;
 };
 
-export default async function EventPage({
-  params,
-  searchParams,
-}: PageProps) {
-  const { slug } = await params;
-  const query = await searchParams;
+export default function EventResponse({
+  event,
+  guest,
+  error,
+}: EventResponseProps) {
+  if (error || !guest) {
+    return (
+      <section className="event-message">
+        <h2>{error || "Convite não localizado."}</h2>
 
-  const rawToken = Array.isArray(query.token)
-    ? query.token[0]
-    : query.token;
-
-  const token = rawToken?.trim() || "";
-
-  const event = await getEventBySlug(slug);
-
-  if (!event) {
-    notFound();
+        <p>
+          Abra o link individual recebido por e-mail ou solicite um novo
+          convite ao organizador.
+        </p>
+      </section>
+    );
   }
 
-  const result = token
-    ? await findGuest(slug, token)
-    : null;
+  return <ResponseForm event={event} guest={guest} />;
+}
 
-  const guest = result?.guest ?? null;
+function ResponseForm({
+  event,
+  guest,
+}: {
+  event: EventItem;
+  guest: EventGuest;
+}) {
+  const [status, setStatus] = useState<"confirmed" | "declined">(
+    guest.status === "declined" ? "declined" : "confirmed"
+  );
 
-  let error: string | null = null;
+  const [selectedDate, setSelectedDate] = useState(
+    guest.selectedDate || ""
+  );
 
-  if (!token) {
-    error = "Link individual necessário.";
-  } else if (!guest) {
-    error = "Convite não localizado ou expirado.";
+  const [notes, setNotes] = useState(guest.notes || "");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  async function submit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+
+    if (status === "confirmed" && !selectedDate) {
+      setSubmitError("Selecione uma data para participar.");
+      return;
+    }
+
+    setLoading(true);
+    setSubmitError("");
+
+    try {
+      const response = await fetch(
+        `/api/eventos/${encodeURIComponent(event.slug)}/responder`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token: guest.token,
+            status,
+            selectedDate:
+              status === "confirmed" ? selectedDate : "",
+            notes,
+          }),
+        }
+      );
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setSubmitError(
+          result?.error || "Não foi possível registrar sua resposta."
+        );
+        return;
+      }
+
+      setDone(true);
+    } catch {
+      setSubmitError("Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (done) {
+    return (
+      <div className="success">
+        <b>✓</b>
+        <h2>Resposta registrada</h2>
+        <p>Obrigado, {guest.name}.</p>
+      </div>
+    );
   }
 
   return (
-    <main
-      className="public-event"
-      style={
-        {
-          "--primary": event.primaryColor || "#173b57",
-          "--secondary": event.secondaryColor || "#d5a44c",
-        } as React.CSSProperties
-      }
-    >
-      <header className="event-header">
-        <div className="event-header-content">
-          {event.logo ? (
-            <img
-              className="event-logo"
-              src={event.logo}
-              alt={event.name}
-            />
-          ) : (
-            <strong className="event-brand">{event.name}</strong>
-          )}
-        </div>
-      </header>
+    <form onSubmit={submit}>
+      <h2>Confirme sua participação</h2>
 
-      <section
-        className="event-hero"
-        style={
-          event.banner
-            ? {
-                backgroundImage: `
-                  linear-gradient(
-                    90deg,
-                    rgba(6, 37, 64, 0.90),
-                    rgba(15, 25, 77, 0.55)
-                  ),
-                  url("${event.banner}")
-                `,
+      <div className="identity">
+        <label>
+          Convidado
+          <input readOnly value={guest.name} />
+        </label>
+
+        <label>
+          Empresa
+          <input readOnly value={guest.company || ""} />
+        </label>
+      </div>
+
+      <div className="choice">
+        <button
+          type="button"
+          className={status === "confirmed" ? "on" : ""}
+          onClick={() => setStatus("confirmed")}
+        >
+          Quero participar
+        </button>
+
+        <button
+          type="button"
+          className={status === "declined" ? "on" : ""}
+          onClick={() => {
+            setStatus("declined");
+            setSelectedDate("");
+          }}
+        >
+          Não poderei participar
+        </button>
+      </div>
+
+      {status === "confirmed" && (
+        <fieldset>
+          <legend>Escolha uma data</legend>
+
+          {event.dates.map((eventDate) => (
+            <label
+              key={eventDate.id}
+              className={
+                selectedDate === eventDate.label
+                  ? "date on"
+                  : "date"
               }
-            : {
-                background: `linear-gradient(
-                  135deg,
-                  ${event.primaryColor || "#173b57"},
-                  ${event.secondaryColor || "#d5a44c"}
-                )`,
-              }
-        }
+            >
+              <input
+                type="radio"
+                name="event-date"
+                checked={selectedDate === eventDate.label}
+                onChange={() =>
+                  setSelectedDate(eventDate.label)
+                }
+              />
+
+              {eventDate.label}
+            </label>
+          ))}
+        </fieldset>
+      )}
+
+      <label>
+        Observações
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+        />
+      </label>
+
+      {submitError && (
+        <div className="error" role="alert">
+          {submitError}
+        </div>
+      )}
+
+      <button
+        className="submit"
+        type="submit"
+        disabled={loading}
       >
-        <div className="event-hero-content">
-          <span className="event-eyebrow">CONVITE ESPECIAL</span>
-
-          <h1>{event.name}</h1>
-
-          {event.description && (
-            <p className="event-description">
-              {event.description}
-            </p>
-          )}
-
-          <div className="event-meta">
-            {event.location && <strong>{event.location}</strong>}
-
-            {event.startInfo && <span>{event.startInfo}</span>}
-          </div>
-        </div>
-      </section>
-
-      <section className="event-content">
-        <div className="event-card">
-          <EventResponse
-            event={event}
-            guest={guest}
-            error={error}
-          />
-        </div>
-      </section>
-
-      <footer className="event-footer">
-        Gestão de eventos
-      </footer>
-    </main>
+        {loading ? "Enviando..." : "Enviar resposta"}
+      </button>
+    </form>
   );
 }
