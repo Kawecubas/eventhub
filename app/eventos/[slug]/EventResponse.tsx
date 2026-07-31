@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { findGuest, getEventBySlug } from "@/lib/event-platform-store";
 import EventResponse from "./EventResponse";
 
-import "./style.css";
+import "./public.css";
 
 export const dynamic = "force-dynamic";
 
