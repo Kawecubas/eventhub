@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-
 import type {
   EventGuest,
   EventItem,
@@ -22,10 +21,9 @@ export default function EventResponse({
     return (
       <section className="event-message">
         <h2>{error || "Convite não localizado."}</h2>
-
         <p>
           Abra o link individual recebido por e-mail ou solicite um novo
-          convite ao organizador do evento.
+          convite ao organizador.
         </p>
       </section>
     );
@@ -44,16 +42,14 @@ function ResponseForm({
   const [status, setStatus] = useState<"confirmed" | "declined">(
     guest.status === "declined" ? "declined" : "confirmed"
   );
-
   const [date, setDate] = useState(guest.selectedDate || "");
   const [notes, setNotes] = useState(guest.notes || "");
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  async function submit(eventSubmit: React.FormEvent<HTMLFormElement>) {
-    eventSubmit.preventDefault();
-
+  async function submit(formEvent: React.FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
     setLoading(true);
     setSubmitError("");
 
@@ -62,9 +58,7 @@ function ResponseForm({
         `/api/eventos/${encodeURIComponent(event.slug)}/responder`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             token: guest.token,
             status,
@@ -110,7 +104,6 @@ function ResponseForm({
           Convidado
           <input readOnly value={guest.name} />
         </label>
-
         <label>
           Empresa
           <input readOnly value={guest.company || ""} />
@@ -125,7 +118,6 @@ function ResponseForm({
         >
           Quero participar
         </button>
-
         <button
           type="button"
           className={status === "declined" ? "on" : ""}
@@ -141,12 +133,9 @@ function ResponseForm({
       {status === "confirmed" && (
         <fieldset>
           <legend>Escolha uma data</legend>
-
           {event.dates.map((eventDate) => (
             <label
-              className={
-                date === eventDate.label ? "date on" : "date"
-              }
+              className={date === eventDate.label ? "date on" : "date"}
               key={eventDate.id}
             >
               <input
@@ -156,7 +145,6 @@ function ResponseForm({
                 checked={date === eventDate.label}
                 onChange={() => setDate(eventDate.label)}
               />
-
               {eventDate.label}
             </label>
           ))}
@@ -167,9 +155,7 @@ function ResponseForm({
         Observações
         <textarea
           value={notes}
-          onChange={(changeEvent) =>
-            setNotes(changeEvent.target.value)
-          }
+          onChange={(changeEvent) => setNotes(changeEvent.target.value)}
         />
       </label>
 
@@ -179,11 +165,7 @@ function ResponseForm({
         </div>
       )}
 
-      <button
-        className="submit"
-        type="submit"
-        disabled={loading}
-      >
+      <button className="submit" type="submit" disabled={loading}>
         {loading ? "Enviando..." : "Enviar resposta"}
       </button>
     </form>
