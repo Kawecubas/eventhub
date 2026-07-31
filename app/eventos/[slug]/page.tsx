@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getEvent } from "@/lib/event-platform-store";
-import EventPublicForm from "./EventPublicForm";
+import EventResponse from "./EventResponse";
 
 export const dynamic = "force-dynamic";
 
@@ -14,18 +14,16 @@ type PageProps = {
   }>;
 };
 
-export default async function EventPage({
+export default async function Page({
   params,
   searchParams,
 }: PageProps) {
   const { slug } = await params;
   const query = await searchParams;
 
-  const rawToken = Array.isArray(query.token)
+  const token = Array.isArray(query.token)
     ? query.token[0]
     : query.token;
-
-  const token = rawToken?.trim();
 
   const event = await getEvent(slug);
 
@@ -35,41 +33,30 @@ export default async function EventPage({
 
   if (!token) {
     return (
-      <EventPublicForm
+      <EventResponse
         event={event}
         guest={null}
-        error="Link individual necessário"
+        error="Link individual necessário."
       />
     );
   }
 
   const guest = event.guests.find(
-    (item) =>
-      String(item.token ?? "").trim() === token
+    (g) => String(g.token).trim() === String(token).trim()
   );
 
   if (!guest) {
-    console.error("TOKEN NÃO LOCALIZADO", {
-      slug,
-      receivedToken: token,
-      availableTokens: event.guests.map((item) => ({
-        id: item.id,
-        email: item.email,
-        token: item.token,
-      })),
-    });
-
     return (
-      <EventPublicForm
+      <EventResponse
         event={event}
         guest={null}
-        error="Link inválido ou convidado não localizado"
+        error="Convite não localizado ou expirado."
       />
     );
   }
 
   return (
-    <EventPublicForm
+    <EventResponse
       event={event}
       guest={guest}
       error={null}
