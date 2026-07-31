@@ -1,67 +1,78 @@
-import { findGuest, getEventBySlug } from "@/lib/event-platform-store";
-import EventResponse from "./EventResponse";
-import "./public.css";
+import { notFound } from "next/navigation";
+
+import { getEvent } from "@/lib/event-platform-store";
+import EventPublicForm from "./EventPublicForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({
+type PageProps = {
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams: Promise<{
+    token?: string | string[];
+  }>;
+};
+
+export default async function EventPage({
   params,
   searchParams,
-}: {
-  params: { slug: string };
-  searchParams: { token?: string };
-}) {
-  const event = await getEventBySlug(params.slug);
-  const found = searchParams.token
-    ? await findGuest(params.slug, searchParams.token)
-    : null;
+}: PageProps) {
+  const { slug } = await params;
+  const query = await searchParams;
 
-  if (!event) return <main>Evento não encontrado.</main>;
+  const rawToken = Array.isArray(query.token)
+    ? query.token[0]
+    : query.token;
 
-  const style = {
-    "--primary": event.primaryColor,
-    "--secondary": event.secondaryColor,
-  } as React.CSSProperties;
+  const token = rawToken?.trim();
+
+  const event = await getEvent(slug);
+
+  if (!event) {
+    notFound();
+  }
+
+  if (!token) {
+    return (
+      <EventPublicForm
+        event={event}
+        guest={null}
+        error="Link individual necessário"
+      />
+    );
+  }
+
+  const guest = event.guests.find(
+    (item) =>
+      String(item.token ?? "").trim() === token
+  );
+
+  if (!guest) {
+    console.error("TOKEN NÃO LOCALIZADO", {
+      slug,
+      receivedToken: token,
+      availableTokens: event.guests.map((item) => ({
+        id: item.id,
+        email: item.email,
+        token: item.token,
+      })),
+    });
+
+    return (
+      <EventPublicForm
+        event={event}
+        guest={null}
+        error="Link inválido ou convidado não localizado"
+      />
+    );
+  }
 
   return (
-    <main className="public-event" style={style}>
-      <header>
-        {event.logo ? (
-          <img src={event.logo} alt={event.name} />
-        ) : (
-          <strong>{event.name}</strong>
-        )}
-      </header>
-      <section
-        className="hero"
-        style={
-          event.banner
-            ? {
-                backgroundImage: `linear-gradient(#0008,#0008),url(${event.banner})`,
-              }
-            : undefined
-        }
-      >
-        <div>
-          <small>CONVITE ESPECIAL</small>
-          <h1>{event.name}</h1>
-          <p>{event.description}</p>
-          <p className="meta">
-            {event.location} {event.startInfo && `• ${event.startInfo}`}
-          </p>
-        </div>
-      </section>
-      <section className="response">
-        {found ? (
-          <EventResponse event={event} guest={found.guest} />
-        ) : (
-          <div>
-            <h2>Link individual necessário</h2>
-            <p>Abra o link recebido por e-mail para confirmar sua participação.</p>
-          </div>
-        )}
-      </section>
-      <footer>Gestão de eventos</footer>
-    </main>
+    <EventPublicForm
+      event={event}
+      guest={guest}
+      error={null}
+    />
   );
 }
