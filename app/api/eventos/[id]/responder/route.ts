@@ -1,0 +1,1 @@
+import {NextResponse} from "next/server";import {respond} from "@/lib/event-platform-store";export async function POST(r:Request,{params}:{params:{id:string}}){const b=await r.json();const g=respond(params.id,b.token,b);return g?NextResponse.json(g):NextResponse.json({error:'Convite inválido'},{status:404})}
