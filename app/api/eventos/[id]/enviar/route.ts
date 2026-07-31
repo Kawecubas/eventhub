@@ -161,19 +161,22 @@ Confirme sua participação pelo link:
 
         const responseBody = await response.json().catch(() => null);
 
-        if (!response.ok) {
-          failures.push({
-            guestId: guest.id,
-            email: guest.email,
-            error:
-              responseBody?.message ||
-              responseBody?.error ||
-              `Erro HTTP ${response.status}`,
-          });
+       if (!response.ok) {
+  console.error("RESEND ERROR:", {
+    status: response.status,
+    body: responseBody,
+  });
 
-          continue;
-        }
+  failures.push({
+    guestId: guest.id,
+    email: guest.email,
+    error: JSON.stringify(responseBody),
+  });
 
+  continue;
+}
+
+         
         successfullySent.push(guest.id);
       } catch (error) {
         failures.push({
