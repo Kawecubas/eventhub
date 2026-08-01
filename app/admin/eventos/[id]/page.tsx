@@ -5,6 +5,7 @@ import { getEvent } from "@/lib/event-platform-store";
 
 import EventDashboard from "./EventDashboard";
 import EventEditor from "./EventEditor";
+import DeleteEventButton from "./DeleteEventButton";
 
 export const dynamic = "force-dynamic";
 
@@ -34,4 +35,27 @@ export default async function Page({
       <EventEditor initial={event} />
     </>
   );
+
+  return (
+  <>
+    <EventDashboard event={event} />
+
+    <EventEditor initial={event} />
+
+    <section className="danger-zone">
+      <div>
+        <span>ZONA DE PERIGO</span>
+        <h2>Excluir evento</h2>
+        <p>
+          Exclua permanentemente o evento e todos os seus dados.
+        </p>
+      </div>
+
+      <DeleteEventButton
+        eventId={event.id}
+        eventName={event.name}
+      />
+    </section>
+  </>
+);
 }
