@@ -480,8 +480,13 @@ export async function respond(
     (item) => item.token.trim() === String(token ?? "").trim()
   );
 
-  if (!event || !guest) return null;
+if (!event || !guest) {
+  return null;
+}
 
+if (guest.respondedAt) {
+  throw new Error("Este convite já foi respondido.");
+}
   if (input.status === "confirmed") {
     const selectedDate = String(input.selectedDate ?? "").trim();
 

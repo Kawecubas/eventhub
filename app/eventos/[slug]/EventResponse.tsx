@@ -31,6 +31,43 @@ export default function EventResponse({
     );
   }
 
+  if (guest && guest.respondedAt) {
+  return (
+    <div className="success">
+      <div className="success-icon">✓</div>
+
+      <h2>Resposta já registrada</h2>
+
+      <p>
+        Olá, <strong>{guest.name}</strong>.
+      </p>
+
+      <p>
+        Sua resposta para o evento <strong>{event.name}</strong> já foi registrada.
+      </p>
+
+      <div className="summary">
+        <p>
+          <strong>Status:</strong>{" "}
+          {guest.status === "confirmed"
+            ? "Participação confirmada"
+            : "Não poderá participar"}
+        </p>
+
+        {guest.selectedDate && (
+          <p>
+            <strong>Data escolhida:</strong> {guest.selectedDate}
+          </p>
+        )}
+
+        <p>
+          <strong>Respondido em:</strong>{" "}
+          {new Date(guest.respondedAt).toLocaleString("pt-BR")}
+        </p>
+      </div>
+    </div>
+  );
+}
   return <ResponseForm event={event} guest={guest} />;
 }
 
