@@ -33,15 +33,7 @@ export default async function Page({
     <>
       <EventDashboard event={event} />
       <EventEditor initial={event} />
-    </>
-  );
-
-  return (
-  <>
-    <EventDashboard event={event} />
-
-    <EventEditor initial={event} />
-
+    
     <section className="danger-zone">
       <div>
         <span>ZONA DE PERIGO</span>
@@ -57,5 +49,6 @@ export default async function Page({
       />
     </section>
   </>
-);
+  );
+
 }
