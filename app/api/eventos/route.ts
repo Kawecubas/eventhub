@@ -14,53 +14,53 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(
-  _request: Request,
-  { params }: RouteContext
-) {
-  if (!(await isAdmin())) {
-    return NextResponse.json(
-      { error: "Não autorizado." },
-      { status: 401 }
-    );
-  }
-
-  const { id } = await params;
-  const event = await getEvent(id);
-
-  if (!event) {
-    return NextResponse.json(
-      { error: "Evento não encontrado." },
-      { status: 404 }
-    );
-  }
-
-  return NextResponse.json(event);
-}
-
 export async function DELETE(
   _request: Request,
   { params }: RouteContext
 ) {
-  if (!(await isAdmin())) {
+  try {
+    if (!(await isAdmin())) {
+      return NextResponse.json(
+        { error: "Não autorizado." },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+
+    const event = await getEvent(id);
+
+    if (!event) {
+      return NextResponse.json(
+        { error: "Evento não encontrado." },
+        { status: 404 }
+      );
+    }
+
+    const deleted = await removeEvent(event.id);
+
+    if (!deleted) {
+      return NextResponse.json(
+        { error: "O evento não foi removido do banco." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message: "Evento excluído com sucesso.",
+    });
+  } catch (error) {
+    console.error("Erro ao excluir evento:", error);
+
     return NextResponse.json(
-      { error: "Não autorizado." },
-      { status: 401 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro interno ao excluir evento.",
+      },
+      { status: 500 }
     );
   }
-
-  const { id } = await params;
-  const deleted = await removeEvent(id);
-
-  if (!deleted) {
-    return NextResponse.json(
-      { error: "Evento não encontrado." },
-      { status: 404 }
-    );
-  }
-
-  return NextResponse.json({
-    ok: true,
-    message: "Evento excluído com sucesso.",
-  });
 }

@@ -295,8 +295,11 @@ export async function saveEvent(
   return persistEvent(event);
 }
 
-export async function removeEvent(id: string): Promise<boolean> {
+export async function removeEvent(
+  id: string
+): Promise<boolean> {
   await ensureDatabase();
+
   const sql = database();
 
   const rows = await sql`
