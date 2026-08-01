@@ -253,14 +253,20 @@ export async function getEventBySlug(
 }
 
 export async function saveEvent(
-  input: Partial<EventItem> & { name: string; slug: string }
+  input: Partial<EventItem> & {
+    name: string;
+    slug: string;
+  }
 ): Promise<EventItem> {
   const now = new Date().toISOString();
-  const existing = input.id ? await getEvent(input.id) : undefined;
+
+  const existing = input.id
+    ? await getEvent(input.id)
+    : undefined;
 
   const base: EventItem = existing ?? {
     id: crypto.randomUUID(),
-    slug: normalizeSlug(input.slug),
+    slug: input.slug,
     name: input.name,
     description: "",
     location: "",
@@ -268,10 +274,12 @@ export async function saveEvent(
     primaryColor: "#173b57",
     secondaryColor: "#d5a44c",
     emailFrom:
-      process.env.EMAIL_FROM || "Eventos <eventos@seudominio.com>",
+      process.env.EMAIL_FROM ||
+      "Eventos <eventos@seudominio.com>",
     emailSubject: "Convite: {{evento}}",
     emailBody:
       "Olá, {{nome}}. Você está convidado para o evento {{evento}}. Confirme sua participação: {{link}}",
+    emailHtml: "",
     status: "draft",
     dates: [],
     guests: [],
@@ -279,18 +287,17 @@ export async function saveEvent(
     updatedAt: now,
   };
 
-  const event = normalizeEvent({
+  const event: EventItem = normalizeEvent({
     ...base,
     ...input,
+
     id: base.id,
-    slug: normalizeSlug(input.slug),
     createdAt: base.createdAt,
     updatedAt: now,
-  });
 
-  if (!event.name || !event.slug) {
-    throw new Error("Nome e slug do evento são obrigatórios.");
-  }
+    // Protege os convidados já salvos no banco.
+    guests: existing?.guests ?? input.guests ?? [],
+  });
 
   return persistEvent(event);
 }
