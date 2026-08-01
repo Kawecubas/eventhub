@@ -139,14 +139,51 @@ export async function getCompanySettings(): Promise<CompanySettings> {
       FROM eventhub_settings
       WHERE id = 'company'
       LIMIT 1
+    `;export async function getCompanySettings(): Promise<CompanySettings> {
+  try {
+    const url = databaseUrl();
+    const parsedUrl = new URL(url);
+
+    console.log("[SETTINGS] Banco utilizado:", {
+      host: parsedUrl.hostname,
+      database: parsedUrl.pathname,
+    });
+
+    await ensureSettingsTable();
+
+    const sql = sqlClient();
+
+    const rows = await sql`
+      SELECT data
+      FROM eventhub_settings
+      WHERE id = 'company'
+      LIMIT 1
     `;
 
-    return rows[0]
+    console.log("[SETTINGS] Quantidade de registros:", rows.length);
+    console.log("[SETTINGS] Dados do Neon:", rows[0]?.data);
+    console.log(
+      "[SETTINGS] Banner encontrado:",
+      rows[0]?.data?.loginBanner
+    );
+
+    const settings = rows[0]
       ? normalizeSettings(rows[0].data)
       : normalizeSettings(DEFAULT_SETTINGS);
+
+    console.log(
+      "[SETTINGS] Banner normalizado:",
+      settings.loginBanner
+    );
+
+    return settings;
   } catch (error) {
-    console.error("[COMPANY SETTINGS] Falha ao carregar configurações:", error);
-    return normalizeSettings(DEFAULT_SETTINGS);
+    console.error(
+      "[COMPANY SETTINGS] Falha ao carregar configurações:",
+      error
+    );
+
+    throw error;
   }
 }
 
