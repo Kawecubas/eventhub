@@ -15,50 +15,52 @@ type RouteContext = {
 };
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: RouteContext
 ) {
   try {
+    console.log("==== EXCLUIR EVENTO ====");
+
     if (!(await isAdmin())) {
-      return NextResponse.json(
-        { error: "Não autorizado." },
-        { status: 401 }
-      );
+      console.log("Não autorizado");
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const { id } = await params;
 
+    console.log("ID recebido:", id);
+
     const event = await getEvent(id);
+
+    console.log("Evento encontrado:", event);
 
     if (!event) {
       return NextResponse.json(
-        { error: "Evento não encontrado." },
+        { error: "Evento não encontrado" },
         { status: 404 }
       );
     }
 
     const deleted = await removeEvent(event.id);
 
-    if (!deleted) {
-      return NextResponse.json(
-        { error: "O evento não foi removido do banco." },
-        { status: 500 }
-      );
-    }
+    console.log("Resultado removeEvent:", deleted);
 
     return NextResponse.json({
-      ok: true,
-      message: "Evento excluído com sucesso.",
+      ok: deleted,
     });
-  } catch (error) {
-    console.error("Erro ao excluir evento:", error);
+  } catch (err) {
+    console.error("ERRO DELETE EVENTO");
+    console.error(err);
 
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Erro interno ao excluir evento.",
+        error: err instanceof Error ? err.message : String(err),
+        stack:
+          process.env.NODE_ENV === "development"
+            ? err instanceof Error
+              ? err.stack
+              : null
+            : undefined,
       },
       { status: 500 }
     );

@@ -295,20 +295,26 @@ export async function saveEvent(
   return persistEvent(event);
 }
 
-export async function removeEvent(
-  id: string
-): Promise<boolean> {
+export async function removeEvent(id: string) {
+  console.log("removeEvent()");
+
+  console.log("ID:", id);
+
   await ensureDatabase();
 
   const sql = database();
 
-  const rows = await sql`
+  console.log("Executando DELETE...");
+
+  const result = await sql`
     DELETE FROM eventhub_events
     WHERE id = ${id}
     RETURNING id
   `;
 
-  return rows.length > 0;
+  console.log("Resultado:", result);
+
+  return result.length > 0;
 }
 
 export async function addGuest(
