@@ -132,15 +132,6 @@ function normalizeSettings(value: unknown): CompanySettings {
 
 export async function getCompanySettings(): Promise<CompanySettings> {
   try {
-    await ensureSettingsTable();
-    const sql = sqlClient();
-    const rows = await sql`
-      SELECT data
-      FROM eventhub_settings
-      WHERE id = 'company'
-      LIMIT 1
-    `;export async function getCompanySettings(): Promise<CompanySettings> {
-  try {
     const url = databaseUrl();
     const parsedUrl = new URL(url);
 
