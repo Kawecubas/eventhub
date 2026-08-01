@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
 
 import {
@@ -38,32 +39,104 @@ export default async function Page({
     notFound();
   }
 
+  const result = token
+    ? await findGuest(slug, token)
+    : null;
+
+  const guest = result?.guest ?? null;
+
+  let error: string | null = null;
+
   if (!token) {
-    return (
-      <EventResponse
-        event={event}
-        guest={null}
-        error="Link individual necessário."
-      />
-    );
+    error = "Link individual necessário.";
+  } else if (!guest) {
+    error = "Convite não localizado ou expirado.";
   }
 
-  const result = await findGuest(slug, token);
+  const pageStyle = {
+    "--primary": event.primaryColor || "#173b57",
+    "--secondary": event.secondaryColor || "#d5a44c",
+  } as CSSProperties;
 
-  if (!result) {
-    return (
-      <EventResponse
-        event={event}
-        guest={null}
-        error="Convite não localizado ou expirado."
-      />
-    );
-  }
+  const heroStyle: CSSProperties = event.banner
+    ? {
+        backgroundImage: `
+          linear-gradient(
+            90deg,
+            rgba(6, 37, 64, 0.92),
+            rgba(15, 25, 77, 0.48)
+          ),
+          url("${event.banner}")
+        `,
+      }
+    : {
+        background: `linear-gradient(
+          135deg,
+          ${event.primaryColor || "#173b57"},
+          ${event.secondaryColor || "#d5a44c"}
+        )`,
+      };
 
   return (
-    <EventResponse
-      event={result.event}
-      guest={result.guest}
-    />
+    <main className="public-event" style={pageStyle}>
+      <header className="event-header">
+        <div className="event-header-content">
+          {event.logo ? (
+            <img
+              className="event-logo"
+              src={event.logo}
+              alt={event.name}
+            />
+          ) : (
+            <strong className="event-brand">
+              {event.name}
+            </strong>
+          )}
+        </div>
+      </header>
+
+      <section
+        className="event-hero"
+        style={heroStyle}
+      >
+        <div className="event-hero-content">
+          <span className="event-eyebrow">
+            CONVITE ESPECIAL
+          </span>
+
+          <h1>{event.name}</h1>
+
+          {event.description && (
+            <p className="event-description">
+              {event.description}
+            </p>
+          )}
+
+          <div className="event-meta">
+            {event.location && (
+              <strong>{event.location}</strong>
+            )}
+
+            {event.startInfo && (
+              <span>{event.startInfo}</span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="event-content">
+        <div className="event-card">
+          <EventResponse
+            event={event}
+            guest={guest}
+            error={error}
+          />
+        </div>
+      </section>
+
+      <footer className="event-footer">
+        Gestão de eventos
+      </footer>
+    </main>
   );
 }
