@@ -39,14 +39,19 @@ export default function DeleteEventButton({
         }
       );
 
-      const result = await response.json().catch(() => null);
+const result = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
-        setError(
-          result?.error || "Não foi possível excluir o evento."
-        );
-        return;
-      }
+if (!response.ok) {
+  console.error(result);
+
+  setError(
+    result.error ||
+    result.message ||
+    JSON.stringify(result)
+  );
+
+  return;
+}
 
       router.push("/admin/eventos");
       router.refresh();
