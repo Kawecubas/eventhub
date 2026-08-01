@@ -9,19 +9,23 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
     "lucide-react": "^0.468.0",
     "next": "14.2.23",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "xlsx": "^0.18.5",
-    "@neondatabase/serverless": "^0.10.4"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.23",
+    "install": "^0.13.0",
+    "npm": "^11.19.0",
+    "qrcode": "^1.5.4",
     "typescript": "^5.7.2"
   }
 }
