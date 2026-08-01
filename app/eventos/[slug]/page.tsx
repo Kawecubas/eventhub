@@ -1,22 +1,42 @@
 import { notFound } from "next/navigation";
-import { findGuest, getEvent } from "@/lib/event-platform-store";
+
+import {
+  findGuest,
+  getEventBySlug,
+} from "@/lib/event-platform-store";
+
 import EventResponse from "./EventResponse";
+import "./public.css";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ token?: string | string[] }>;
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams: Promise<{
+    token?: string | string[];
+  }>;
 };
 
-export default async function Page({ params, searchParams }: PageProps) {
+export default async function Page({
+  params,
+  searchParams,
+}: PageProps) {
   const { slug } = await params;
   const query = await searchParams;
-  const rawToken = Array.isArray(query.token) ? query.token[0] : query.token;
+
+  const rawToken = Array.isArray(query.token)
+    ? query.token[0]
+    : query.token;
+
   const token = String(rawToken ?? "").trim();
 
-  const event = await getEvent(slug);
-  if (!event) notFound();
+  const event = await getEventBySlug(slug);
+
+  if (!event) {
+    notFound();
+  }
 
   if (!token) {
     return (
@@ -40,5 +60,10 @@ export default async function Page({ params, searchParams }: PageProps) {
     );
   }
 
-  return <EventResponse event={result.event} guest={result.guest} />;
+  return (
+    <EventResponse
+      event={result.event}
+      guest={result.guest}
+    />
+  );
 }
