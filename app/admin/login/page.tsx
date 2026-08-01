@@ -4,6 +4,8 @@ import "./style.css";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage(){
-  return <LoginForm settings={await getCompanySettings()}/>;
+export default async function LoginPage() {
+  const settings = await getCompanySettings();
+
+  return <LoginForm settings={settings} />;
 }

@@ -18,7 +18,7 @@ export default function LoginForm({ settings }: { settings: CompanySettings }) {
     if(!response.ok){setError("Senha inválida.");return;}
     router.push("/admin/dashboard");router.refresh();
   }
-
+console.log("loginBanner:", settings.loginBanner);
   return <main className="white-login" style={style}>
     <section className="white-login-visual" style={settings.loginBanner?{backgroundImage:`linear-gradient(rgba(11,29,43,.55),rgba(11,29,43,.78)),url("${settings.loginBanner}")`}:undefined}>
       <div><span>GESTÃO DE EVENTOS</span><h1>{settings.tradeName}</h1><p>Crie experiências, acompanhe confirmações e organize seus eventos em um único ambiente.</p></div>
