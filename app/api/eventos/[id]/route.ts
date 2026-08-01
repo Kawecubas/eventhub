@@ -1,5 +1,3 @@
-// app/api/eventos/[id]/route.ts
-
 import { NextResponse } from "next/server";
 
 import { isAdmin } from "@/lib/admin-auth";
@@ -16,30 +14,6 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(
-  _request: Request,
-  { params }: RouteContext
-) {
-  if (!(await isAdmin())) {
-    return NextResponse.json(
-      { error: "Não autorizado." },
-      { status: 401 }
-    );
-  }
-
-  const { id } = await params;
-  const event = await getEvent(id);
-
-  if (!event) {
-    return NextResponse.json(
-      { error: "Evento não encontrado." },
-      { status: 404 }
-    );
-  }
-
-  return NextResponse.json(event);
-}
-
 export async function DELETE(
   _request: Request,
   { params }: RouteContext
@@ -53,14 +27,9 @@ export async function DELETE(
     }
 
     const { id } = await params;
-
-    console.log("[DELETE EVENT] ID recebido:", id);
-
     const event = await getEvent(id);
 
     if (!event) {
-      console.log("[DELETE EVENT] Evento não encontrado:", id);
-
       return NextResponse.json(
         { error: "Evento não encontrado." },
         { status: 404 }
@@ -69,11 +38,9 @@ export async function DELETE(
 
     const deleted = await removeEvent(event.id);
 
-    console.log("[DELETE EVENT] Resultado:", deleted);
-
     if (!deleted) {
       return NextResponse.json(
-        { error: "O evento não foi removido do banco." },
+        { error: "Não foi possível remover o evento." },
         { status: 500 }
       );
     }
@@ -83,14 +50,12 @@ export async function DELETE(
       message: "Evento excluído com sucesso.",
     });
   } catch (error) {
-    console.error("[DELETE EVENT] Erro:", error);
-
     return NextResponse.json(
       {
         error:
           error instanceof Error
             ? error.message
-            : "Erro interno ao excluir o evento.",
+            : "Erro interno ao excluir evento.",
       },
       { status: 500 }
     );

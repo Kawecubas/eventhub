@@ -2,65 +2,70 @@ import { NextResponse } from "next/server";
 
 import { isAdmin } from "@/lib/admin-auth";
 import {
-  getEvent,
-  removeEvent,
+  listEvents,
+  saveEvent,
 } from "@/lib/event-platform-store";
 
 export const dynamic = "force-dynamic";
 
-type RouteContext = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+export async function GET() {
+  if (!(await isAdmin())) {
+    return NextResponse.json(
+      { error: "Não autorizado." },
+      { status: 401 }
+    );
+  }
 
-export async function DELETE(
-  request: Request,
-  { params }: RouteContext
-) {
   try {
-    console.log("==== EXCLUIR EVENTO ====");
+    return NextResponse.json(await listEvents());
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro ao listar eventos.",
+      },
+      { status: 500 }
+    );
+  }
+}
 
-    if (!(await isAdmin())) {
-      console.log("Não autorizado");
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
+export async function POST(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json(
+      { error: "Não autorizado." },
+      { status: 401 }
+    );
+  }
 
-    const { id } = await params;
+  try {
+    const body = await request.json();
 
-    console.log("ID recebido:", id);
+    const name = String(body.name ?? "").trim();
+    const slug = String(body.slug ?? "").trim();
 
-    const event = await getEvent(id);
-
-    console.log("Evento encontrado:", event);
-
-    if (!event) {
+    if (!name || !slug) {
       return NextResponse.json(
-        { error: "Evento não encontrado" },
-        { status: 404 }
+        { error: "Nome e slug são obrigatórios." },
+        { status: 400 }
       );
     }
 
-    const deleted = await removeEvent(event.id);
-
-    console.log("Resultado removeEvent:", deleted);
-
-    return NextResponse.json({
-      ok: deleted,
+    const event = await saveEvent({
+      ...body,
+      name,
+      slug,
     });
-  } catch (err) {
-    console.error("ERRO DELETE EVENTO");
-    console.error(err);
 
+    return NextResponse.json(event);
+  } catch (error) {
     return NextResponse.json(
       {
-        error: err instanceof Error ? err.message : String(err),
-        stack:
-          process.env.NODE_ENV === "development"
-            ? err instanceof Error
-              ? err.stack
-              : null
-            : undefined,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro ao salvar evento.",
       },
       { status: 500 }
     );
