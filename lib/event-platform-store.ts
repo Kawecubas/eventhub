@@ -36,6 +36,7 @@ export type EventItem = {
   emailFrom: string;
   emailSubject: string;
   emailBody: string;
+  emailHtml?: string;
   status: "draft" | "published" | "closed";
   dates: EventDate[];
   guests: EventGuest[];
@@ -146,6 +147,7 @@ function normalizeEvent(value: unknown): EventItem {
       source.emailBody ??
         "Olá, {{nome}}. Você está convidado para o evento {{evento}}. Confirme sua participação: {{link}}"
     ),
+    emailHtml: source.emailHtml ? String(source.emailHtml) : "",
     status:
       source.status === "published" || source.status === "closed"
         ? source.status
@@ -249,7 +251,24 @@ export async function getEvent(
 export async function getEventBySlug(
   slug: string
 ): Promise<EventItem | undefined> {
-  return getEvent(slug);
+  await ensureDatabase();
+
+  const sql = database();
+
+  const normalizedSlug = decodeURIComponent(slug)
+    .trim()
+    .toLowerCase();
+
+  const rows = await sql`
+    SELECT data
+    FROM eventhub_events
+    WHERE LOWER(slug) = ${normalizedSlug}
+    LIMIT 1
+  `;
+
+  return rows[0]
+    ? normalizeEvent(rows[0].data)
+    : undefined;
 }
 
 export async function saveEvent(
@@ -336,32 +355,54 @@ export async function addGuest(
   const event = await getEvent(eventId);
   if (!event) return null;
 
-  const name = input.name.trim();
-  const email = input.email.trim().toLowerCase();
+  const name = String(input.name ?? "").trim();
+  const email = String(input.email ?? "").trim().toLowerCase();
 
-  if (!name) throw new Error("Nome do convidado é obrigatório.");
+  if (!name) {
+    throw new Error("Nome do convidado é obrigatório.");
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("E-mail inválido.");
   }
 
-  if (event.guests.some((guest) => guest.email === email)) {
+  if (
+    event.guests.some(
+      (guest) => guest.email.trim().toLowerCase() === email
+    )
+  ) {
     throw new Error("Já existe um convidado com este e-mail no evento.");
   }
 
   const guest: EventGuest = {
     id: crypto.randomUUID(),
-    token: crypto.randomBytes(24).toString("hex"),
+    token: crypto.randomBytes(32).toString("hex"),
     name,
-    company: (input.company ?? "").trim(),
+    company: String(input.company ?? "").trim(),
     email,
-    phone: (input.phone ?? "").trim() || undefined,
+    phone: String(input.phone ?? "").trim() || undefined,
     status: "pending",
     createdAt: new Date().toISOString(),
   };
 
-  event.guests.unshift(guest);
-  event.updatedAt = new Date().toISOString();
-  await persistEvent(event);
+  // Recarrega o evento imediatamente antes de salvar para evitar que uma
+  // edição antiga do formulário sobrescreva convidados recém-adicionados.
+  const latestEvent = await getEvent(event.id);
+  if (!latestEvent) return null;
+
+  if (
+    latestEvent.guests.some(
+      (existingGuest) =>
+        existingGuest.email.trim().toLowerCase() === email
+    )
+  ) {
+    throw new Error("Já existe um convidado com este e-mail no evento.");
+  }
+
+  latestEvent.guests.unshift(guest);
+  latestEvent.updatedAt = new Date().toISOString();
+
+  await persistEvent(latestEvent);
 
   return guest;
 }
@@ -386,17 +427,43 @@ export async function deleteGuest(
 export async function findGuest(
   slug: string,
   token: string
-): Promise<{ event: EventItem; guest: EventGuest } | null> {
-  const event = await getEvent(slug);
-  const normalizedToken = String(token ?? "").trim();
+): Promise<{
+  event: EventItem;
+  guest: EventGuest;
+} | null> {
+  const normalizedSlug = normalizeSlug(decodeURIComponent(slug));
+  const normalizedToken = decodeURIComponent(token).trim();
 
-  if (!event || !normalizedToken) return null;
+  const event = await getEventBySlug(normalizedSlug);
+
+  if (!event) {
+    console.error("[FIND GUEST] Evento não encontrado:", {
+      slug: normalizedSlug,
+    });
+
+    return null;
+  }
 
   const guest = event.guests.find(
-    (item) => String(item.token ?? "").trim() === normalizedToken
+    (item) =>
+      String(item.token ?? "").trim() === normalizedToken
   );
 
-  return guest ? { event, guest } : null;
+  if (!guest) {
+    console.error("[FIND GUEST] Token não encontrado:", {
+      eventId: event.id,
+      slug: event.slug,
+      receivedToken: normalizedToken,
+      guestCount: event.guests.length,
+    });
+
+    return null;
+  }
+
+  return {
+    event,
+    guest,
+  };
 }
 
 export async function respond(
@@ -529,7 +596,7 @@ export async function importGuests(
 
     const guest: EventGuest = {
       id: crypto.randomUUID(),
-      token: crypto.randomBytes(24).toString("hex"),
+      token: crypto.randomBytes(32).toString("hex"),
       name,
       company,
       email,
