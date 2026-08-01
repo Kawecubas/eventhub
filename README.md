@@ -1,41 +1,31 @@
-# EventHub White Label
+# Comprovante de confirmação
 
-Aplicação independente para criação e gestão de eventos. Não contém páginas institucionais, componentes comerciais, logos ou integrações externas do projeto original.
+## Arquivos
 
-## Teste local
+1. Substitua `app/eventos/[slug]/EventResponse.tsx`.
+2. Copie `app/eventos/[slug]/comprovante.css`.
+3. No `app/eventos/[slug]/page.tsx`, mantenha o `public.css` e adicione:
 
-```bash
-npm install
-copy .env.example .env.local
-npm run dev
+```tsx
+import "./comprovante.css";
 ```
 
-Acesse `http://localhost:3000/admin/login`.
-
-Credencial padrão de desenvolvimento: `admin123`. Troque no `.env.local`.
-
-## Produção
-
-Antes de publicar, configure `EVENT_ADMIN_PASSWORD`, `EVENT_ADMIN_SECRET` e `NEXT_PUBLIC_APP_URL`.
-
-O armazenamento atual usa `data/eventos.json`, indicado apenas para teste local ou servidor com disco persistente. Para Vercel, migre os dados para PostgreSQL/Neon e imagens para Blob Storage.
-
-## Importação de convidados por Excel/CSV
-
-A aba **Convidados** de cada evento permite:
-
-- baixar o modelo oficial em `/modelos/modelo-importacao-convidados.xlsx`;
-- importar arquivos `.xlsx`, `.xls` e `.csv`;
-- visualizar e validar as linhas antes da carga;
-- detectar nome ausente, e-mail inválido e duplicidades no arquivo;
-- ignorar convidados já cadastrados ou atualizar seus dados;
-- cadastrar convidados válidos em lote, preservando tokens individuais.
-
-Após atualizar o projeto, execute:
+## Dependência do QR Code
 
 ```bash
-npm install
-npm run dev
+npm install qrcode
+npm install -D @types/qrcode
 ```
 
-A funcionalidade adiciona a dependência `xlsx`.
+## Agenda
+
+Os links Google Agenda e Outlook aparecem quando a data escolhida contém `DD/MM/AAAA`. O horário é identificado em textos como `19:30`, `19h30` ou `às 19h`. Se não houver horário, o padrão será 09:00 e duração de duas horas.
+
+Depois execute:
+
+```bash
+npm run build
+git add .
+git commit -m "feat: adiciona comprovante, QR Code e agenda"
+git push origin main
+```
