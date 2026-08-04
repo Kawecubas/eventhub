@@ -1,3 +1,427 @@
-"use client";import {useState} from "react";import {useRouter} from "next/navigation";import type {EventItem} from "@/lib/event-platform-store";import "./editor.css";import GuestImporter from "./GuestImporter";
-const empty={name:"",slug:"",description:"",location:"",startInfo:"",primaryColor:"#173b57",secondaryColor:"#d5a44c",logo:"",banner:"",emailFrom:"Eventos <eventos@seudominio.com>",emailSubject:"Convite: {{evento}}",emailBody:"Olá, {{nome}}. Você está convidado para {{evento}}. Confirme: {{link}}",status:"draft",dates:[],guests:[]};
-export default function EventEditor({initial}:{initial?:EventItem}){const router=useRouter();const[e,setE]=useState<any>(initial||empty);const[newDate,setNewDate]=useState("");const[tab,setTab]=useState("dados");async function file(field:string,f?:File){if(!f)return;const r=new FileReader();r.onload=()=>setE({...e,[field]:r.result});r.readAsDataURL(f)}async function save(){const r=await fetch('/api/eventos',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(e)});const d=await r.json();if(r.ok){setE(d);router.replace(`/admin/eventos/${d.id}`);alert('Evento salvo.')}}async function addGuest(ev:React.FormEvent<HTMLFormElement>){ev.preventDefault();const f=new FormData(ev.currentTarget);const r=await fetch(`/api/eventos/${e.id}/convidados`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(f))});if(r.ok){const g=await r.json();setE({...e,guests:[g,...e.guests]});ev.currentTarget.reset()}}async function send(ids:string[]){const r=await fetch(`/api/eventos/${e.id}/enviar`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({guestIds:ids})});const d=await r.json();alert(d.message||d.error)}return <main className="editor"><header><button onClick={()=>router.push('/admin/eventos')}>← Eventos</button><h1>{e.name||'Novo evento'}</h1><button className="save" onClick={save}>Salvar evento</button></header><nav>{['dados','visual','datas','convidados','email'].map(x=><button className={tab===x?'on':''} onClick={()=>setTab(x)} key={x}>{x}</button>)}</nav>{tab==='dados'&&<section><label>Nome<input value={e.name} onChange={x=>setE({...e,name:x.target.value,slug:e.slug||x.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')})}/></label><label>Slug / endereço<input value={e.slug} onChange={x=>setE({...e,slug:x.target.value})}/></label><label>Descrição<textarea value={e.description} onChange={x=>setE({...e,description:x.target.value})}/></label><div className="cols"><label>Local<input value={e.location} onChange={x=>setE({...e,location:x.target.value})}/></label><label>Informações de horário<input value={e.startInfo} onChange={x=>setE({...e,startInfo:x.target.value})}/></label></div><label>Status<select value={e.status} onChange={x=>setE({...e,status:x.target.value})}><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="closed">Encerrado</option></select></label></section>}{tab==='visual'&&<section><div className="cols"><label>Cor principal<input type="color" value={e.primaryColor} onChange={x=>setE({...e,primaryColor:x.target.value})}/></label><label>Cor de apoio<input type="color" value={e.secondaryColor} onChange={x=>setE({...e,secondaryColor:x.target.value})}/></label></div><label>Logo<input type="file" accept="image/*" onChange={x=>file('logo',x.target.files?.[0])}/></label><label>Banner<input type="file" accept="image/*" onChange={x=>file('banner',x.target.files?.[0])}/></label><div className="preview" style={{background:e.banner?`linear-gradient(#0007,#0007),url(${e.banner}) center/cover`:`linear-gradient(135deg,${e.primaryColor},${e.secondaryColor})`}}>{e.logo&&<img src={e.logo}/>}<h2>{e.name||'Nome do evento'}</h2><p>{e.description||'Descrição do evento'}</p></div></section>}{tab==='datas'&&<section><h2>Datas disponíveis</h2><div className="inline"><input placeholder="Ex.: 05/08/2026 às 19h" value={newDate} onChange={x=>setNewDate(x.target.value)}/><button onClick={()=>{if(newDate){setE({...e,dates:[...e.dates,{id:crypto.randomUUID(),label:newDate}]});setNewDate('')}}}>Adicionar</button></div>{e.dates.map((d:any)=><div className="date" key={d.id}>{d.label}<button onClick={()=>setE({...e,dates:e.dates.filter((x:any)=>x.id!==d.id)})}>Excluir</button></div>)}</section>}{tab==='convidados'&&<section><h2>Convidados</h2>{e.id?<><form className="guest" onSubmit={addGuest}><input name="name" placeholder="Nome" required/><input name="company" placeholder="Empresa"/><input name="email" type="email" placeholder="E-mail" required/><input name="phone" placeholder="Telefone"/><button>Adicionar</button></form><GuestImporter eventId={e.id} onImported={(guests)=>setE({...e,guests:[...guests,...e.guests]})}/><div className="guest-toolbar"><button onClick={()=>send(e.guests.filter((g:any)=>g.status==='pending').map((g:any)=>g.id))}>Enviar para pendentes</button><span>{e.guests.length} convidados cadastrados</span></div><table><thead><tr><th>Nome</th><th>Status</th><th>Data</th><th>Convite</th><th>Link</th></tr></thead><tbody>{e.guests.map((g:any)=><tr key={g.id}><td>{g.name}<small>{g.email}{g.company?` · ${g.company}`:''}</small></td><td>{g.status}</td><td>{g.selectedDate||'—'}</td><td>{g.sentAt?'Enviado':'Não enviado'}</td><td><button onClick={()=>navigator.clipboard.writeText(`${location.origin}/eventos/${e.slug}?token=${g.token}`)}>Copiar</button></td></tr>)}</tbody></table></>:<p>Salve o evento antes de cadastrar convidados.</p>}</section>}{tab==='email'&&<section><label>Remetente<input value={e.emailFrom} onChange={x=>setE({...e,emailFrom:x.target.value})}/></label><label>Assunto<input value={e.emailSubject} onChange={x=>setE({...e,emailSubject:x.target.value})}/></label><label>Mensagem<textarea rows={10} value={e.emailBody} onChange={x=>setE({...e,emailBody:x.target.value})}/></label><p>Variáveis: {'{{nome}}'}, {'{{evento}}'}, {'{{link}}'}</p></section>}</main>}
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+
+import type { EventItem } from "@/lib/event-platform-store";
+import GuestImporter from "./GuestImporter";
+import "./editor.css";
+
+const empty = {
+  name: "",
+  slug: "",
+  description: "",
+  location: "",
+  startInfo: "",
+  primaryColor: "#173b57",
+  secondaryColor: "#d5a44c",
+  logo: "",
+  banner: "",
+  emailFrom: "Eventos <eventos@seudominio.com>",
+  emailSubject: "Convite: {{evento}}",
+  emailBody:
+    "Olá, {{nome}}. Você está convidado para {{evento}}. Confirme: {{link}}",
+  status: "draft",
+  dates: [],
+  guests: [],
+};
+
+type EditorTab = "dados" | "visual" | "datas" | "convidados";
+
+export default function EventEditor({
+  initial,
+  initialTab = "dados",
+}: {
+  initial?: EventItem;
+  initialTab?: EditorTab;
+}) {
+  const router = useRouter();
+  const [event, setEvent] = useState<any>(initial || empty);
+  const [newDate, setNewDate] = useState("");
+  const tab = initialTab;
+  const [guestError, setGuestError] = useState("");
+  const [deletingGuestId, setDeletingGuestId] = useState("");
+
+  async function file(field: string, selected?: File) {
+    if (!selected) return;
+    const reader = new FileReader();
+    reader.onload = () => setEvent({ ...event, [field]: reader.result });
+    reader.readAsDataURL(selected);
+  }
+
+  async function save() {
+    const response = await fetch("/api/eventos", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(event),
+    });
+    const data = await response.json();
+
+    if (response.ok) {
+      setEvent(data);
+      router.replace(`/admin/eventos/${data.id}?aba=${tab}`);
+      alert("Evento salvo.");
+    }
+  }
+
+  async function addGuest(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+    setGuestError("");
+
+    const form = new FormData(formEvent.currentTarget);
+    const response = await fetch(`/api/eventos/${event.id}/convidados`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(form)),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setGuestError(result.error || "Não foi possível cadastrar o convidado.");
+      return;
+    }
+
+    setEvent({ ...event, guests: [result, ...event.guests] });
+    formEvent.currentTarget.reset();
+  }
+
+  async function deleteGuest(guestId: string, guestName: string) {
+    const confirmed = window.confirm(
+      `Excluir o convidado “${guestName}”? Esta ação removerá o token, a resposta e a data selecionada.`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingGuestId(guestId);
+    setGuestError("");
+
+    try {
+      const response = await fetch(
+        `/api/eventos/${event.id}/convidados?guestId=${encodeURIComponent(guestId)}`,
+        { method: "DELETE" }
+      );
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || "Não foi possível excluir o convidado.");
+      }
+
+      setEvent({
+        ...event,
+        guests: event.guests.filter((guest: any) => guest.id !== guestId),
+      });
+      router.refresh();
+    } catch (caught) {
+      setGuestError(
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível excluir o convidado."
+      );
+    } finally {
+      setDeletingGuestId("");
+    }
+  }
+
+  async function send(ids: string[]) {
+    const response = await fetch(`/api/eventos/${event.id}/enviar`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ guestIds: ids }),
+    });
+    const data = await response.json();
+    alert(data.message || data.error);
+  }
+
+  return (
+    <main className="editor">
+      <header>
+        <button onClick={() => router.push("/admin/eventos")}>← Eventos</button>
+        <h1>{event.name || "Novo evento"}</h1>
+        <button className="save" onClick={save}>Salvar evento</button>
+      </header>
+
+      {tab === "dados" && (
+        <section>
+          <label>
+            Nome
+            <input
+              value={event.name}
+              onChange={(change) =>
+                setEvent({
+                  ...event,
+                  name: change.target.value,
+                  slug:
+                    event.slug ||
+                    change.target.value
+                      .toLowerCase()
+                      .normalize("NFD")
+                      .replace(/[\u0300-\u036f]/g, "")
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-|-$/g, ""),
+                })
+              }
+            />
+          </label>
+          <label>
+            Slug / endereço
+            <input
+              value={event.slug}
+              onChange={(change) =>
+                setEvent({ ...event, slug: change.target.value })
+              }
+            />
+          </label>
+          <label>
+            Descrição
+            <textarea
+              value={event.description}
+              onChange={(change) =>
+                setEvent({ ...event, description: change.target.value })
+              }
+            />
+          </label>
+          <div className="cols">
+            <label>
+              Local
+              <input
+                value={event.location}
+                onChange={(change) =>
+                  setEvent({ ...event, location: change.target.value })
+                }
+              />
+            </label>
+            <label>
+              Informações de horário
+              <input
+                value={event.startInfo}
+                onChange={(change) =>
+                  setEvent({ ...event, startInfo: change.target.value })
+                }
+              />
+            </label>
+          </div>
+          <label>
+            Status
+            <select
+              value={event.status}
+              onChange={(change) =>
+                setEvent({ ...event, status: change.target.value })
+              }
+            >
+              <option value="draft">Rascunho</option>
+              <option value="published">Publicado</option>
+              <option value="closed">Encerrado</option>
+            </select>
+          </label>
+        </section>
+      )}
+
+      {tab === "visual" && (
+        <section>
+          <div className="cols">
+            <label>
+              Cor principal
+              <input
+                type="color"
+                value={event.primaryColor}
+                onChange={(change) =>
+                  setEvent({ ...event, primaryColor: change.target.value })
+                }
+              />
+            </label>
+            <label>
+              Cor de apoio
+              <input
+                type="color"
+                value={event.secondaryColor}
+                onChange={(change) =>
+                  setEvent({ ...event, secondaryColor: change.target.value })
+                }
+              />
+            </label>
+          </div>
+          <label>
+            Logo
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(change) => file("logo", change.target.files?.[0])}
+            />
+          </label>
+          <label>
+            Banner
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(change) => file("banner", change.target.files?.[0])}
+            />
+          </label>
+          <div
+            className="preview"
+            style={{
+              background: event.banner
+                ? `linear-gradient(#0007,#0007),url(${event.banner}) center/cover`
+                : `linear-gradient(135deg,${event.primaryColor},${event.secondaryColor})`,
+            }}
+          >
+            {event.logo && <img src={event.logo} alt="Logo do evento" />}
+            <h2>{event.name || "Nome do evento"}</h2>
+            <p>{event.description || "Descrição do evento"}</p>
+          </div>
+        </section>
+      )}
+
+      {tab === "datas" && (
+        <section>
+          <h2>Datas disponíveis</h2>
+          <div className="inline">
+            <input
+              placeholder="Ex.: 05/08/2026 às 19h"
+              value={newDate}
+              onChange={(change) => setNewDate(change.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (!newDate) return;
+                setEvent({
+                  ...event,
+                  dates: [
+                    ...event.dates,
+                    { id: crypto.randomUUID(), label: newDate },
+                  ],
+                });
+                setNewDate("");
+              }}
+            >
+              Adicionar
+            </button>
+          </div>
+          {event.dates.map((date: any) => (
+            <div className="date" key={date.id}>
+              {date.label}
+              <button
+                type="button"
+                onClick={() =>
+                  setEvent({
+                    ...event,
+                    dates: event.dates.filter((item: any) => item.id !== date.id),
+                  })
+                }
+              >
+                Excluir
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {tab === "convidados" && (
+        <section>
+          <h2>Convidados</h2>
+          {event.id ? (
+            <>
+              <form className="guest" onSubmit={addGuest}>
+                <input name="name" placeholder="Nome" required />
+                <input name="company" placeholder="Empresa" />
+                <input name="email" type="email" placeholder="E-mail" required />
+                <input name="phone" placeholder="Telefone" />
+                <button>Adicionar</button>
+              </form>
+
+              <GuestImporter
+                eventId={event.id}
+                onImported={(guests) =>
+                  setEvent({ ...event, guests: [...guests, ...event.guests] })
+                }
+              />
+
+              <div className="guest-toolbar">
+                <div className="guest-toolbar-actions">
+                  <a
+                    className="export-guests-button"
+                    href={`/api/eventos/${event.id}/exportar-convidados`}
+                  >
+                    Exportar lista de convidados
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      send(
+                        event.guests
+                          .filter((guest: any) => guest.status === "pending")
+                          .map((guest: any) => guest.id)
+                      )
+                    }
+                  >
+                    Enviar para pendentes
+                  </button>
+                </div>
+                <span>{event.guests.length} convidados cadastrados</span>
+              </div>
+
+              {guestError && <div className="guest-error">{guestError}</div>}
+
+              <div className="guest-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Status</th>
+                      <th>Data</th>
+                      <th>Convite</th>
+                      <th>Link</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {event.guests.map((guest: any) => (
+                      <tr key={guest.id}>
+                        <td>
+                          {guest.name}
+                          <small>
+                            {guest.email}
+                            {guest.company ? ` · ${guest.company}` : ""}
+                          </small>
+                        </td>
+                        <td>{guest.status}</td>
+                        <td>{guest.selectedDate || "—"}</td>
+                        <td>{guest.sentAt ? "Enviado" : "Não enviado"}</td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigator.clipboard.writeText(
+                                `${location.origin}/eventos/${event.slug}?token=${guest.token}`
+                              )
+                            }
+                          >
+                            Copiar
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="delete-guest-button"
+                            disabled={deletingGuestId === guest.id}
+                            onClick={() => deleteGuest(guest.id, guest.name)}
+                          >
+                            {deletingGuestId === guest.id
+                              ? "Excluindo..."
+                              : "Excluir"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <p>Salve o evento antes de cadastrar convidados.</p>
+          )}
+        </section>
+      )}
+    </main>
+  );
+}

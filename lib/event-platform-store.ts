@@ -17,6 +17,7 @@ export type EventGuest = {
   status: "pending" | "confirmed" | "declined";
   selectedDate?: string;
   notes?: string;
+  participants?: number;
   sentAt?: string;
   respondedAt?: string;
   createdAt: string;
@@ -176,6 +177,10 @@ function normalizeEvent(value: unknown): EventItem {
             ? String(guest.selectedDate)
             : undefined,
           notes: guest.notes ? String(guest.notes) : undefined,
+          participants:
+            typeof guest.participants === "number" && guest.participants >= 1
+              ? Math.floor(guest.participants)
+              : 1,
           sentAt: guest.sentAt ? String(guest.sentAt) : undefined,
           respondedAt: guest.respondedAt
             ? String(guest.respondedAt)
@@ -473,6 +478,7 @@ export async function respond(
     status: "confirmed" | "declined";
     selectedDate?: string;
     notes?: string;
+    participants?: number;
   }
 ): Promise<EventGuest | null> {
   const event = await getEvent(slug);
@@ -489,18 +495,46 @@ if (guest.respondedAt) {
 }
   if (input.status === "confirmed") {
     const selectedDate = String(input.selectedDate ?? "").trim();
+    const participants = Math.min(
+      10,
+      Math.max(1, Math.floor(Number(input.participants) || 1))
+    );
 
     if (!selectedDate) {
       throw new Error("Selecione uma data para confirmar a participação.");
     }
 
-    if (!event.dates.some((date) => date.label === selectedDate)) {
+    const eventDate = event.dates.find((date) => date.label === selectedDate);
+
+    if (!eventDate) {
       throw new Error("A data selecionada não pertence ao evento.");
     }
 
+    if (typeof eventDate.capacity === "number") {
+      const occupied = event.guests
+        .filter(
+          (item) =>
+            item.id !== guest.id &&
+            item.status === "confirmed" &&
+            item.selectedDate === selectedDate
+        )
+        .reduce((sum, item) => sum + (item.participants || 1), 0);
+
+      if (occupied + participants > eventDate.capacity) {
+        throw new Error(
+          `A data selecionada possui apenas ${Math.max(
+            eventDate.capacity - occupied,
+            0
+          )} vaga(s) disponível(is).`
+        );
+      }
+    }
+
     guest.selectedDate = selectedDate;
+    guest.participants = participants;
   } else {
     guest.selectedDate = undefined;
+    guest.participants = 1;
   }
 
   guest.status = input.status;

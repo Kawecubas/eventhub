@@ -54,9 +54,14 @@ export default async function Page() {
                   <b>{event.guests.length}</b> convidados <b>{confirmed}</b>{" "}
                   confirmados
                 </div>
-                <Link href={`/admin/eventos/${event.id}`}>
-                  Gerenciar evento →
-                </Link>
+                <div className="event-card-actions">
+                  <Link href={`/admin/eventos/${event.id}/dashboard`}>
+                    Dashboard
+                  </Link>
+                  <Link href={`/admin/eventos/${event.id}?aba=dados`}>
+                    Gerenciar
+                  </Link>
+                </div>
               </div>
             </article>
           );

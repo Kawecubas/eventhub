@@ -3,12 +3,60 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type CSSProperties, type ReactNode } from "react";
+
 import type { CompanySettings } from "@/lib/company-settings";
 
-const NAVIGATION = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: "▦" },
-  { href: "/admin/eventos", label: "Eventos", icon: "◫" },
-  { href: "/admin/configuracoes", label: "Configurações", icon: "⚙" },
+type NavigationItem = {
+  href: string;
+  label: string;
+  icon: string;
+};
+
+type NavigationGroup = {
+  label?: string;
+  items: NavigationItem[];
+};
+
+const NAVIGATION: NavigationGroup[] = [
+  {
+    items: [
+      {
+        href: "/admin/dashboard",
+        label: "Dashboard",
+        icon: "▦",
+      },
+      {
+        href: "/admin/eventos",
+        label: "Eventos",
+        icon: "◫",
+      },
+    ],
+  },
+  {
+    label: "Comunicação",
+    items: [
+      {
+        href: "/admin/templates",
+        label: "Templates de e-mail",
+        icon: "✉",
+      },
+      {
+        href: "/admin/configuracoes/email",
+        label: "Configuração de e-mail",
+        icon: "⚙",
+      },
+    ],
+  },
+  {
+    label: "Administração",
+    items: [
+      {
+        href: "/admin/configuracoes",
+        label: "Configurações da empresa",
+        icon: "◆",
+      },
+    ],
+  },
 ];
 
 export default function AdminShell({
@@ -51,27 +99,44 @@ export default function AdminShell({
           ) : (
             <span>{settings.tradeName.slice(0, 2).toUpperCase()}</span>
           )}
+
           <div>
             <strong>{settings.tradeName}</strong>
             <small>Gestão de eventos</small>
           </div>
         </div>
 
-        <nav>
-          {NAVIGATION.map((item) => {
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={active ? "active" : ""}
-                onClick={() => setMobileOpen(false)}
-              >
-                <span aria-hidden>{item.icon}</span>
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="admin-navigation">
+          {NAVIGATION.map((group, groupIndex) => (
+            <div
+              className="admin-navigation-group"
+              key={group.label || `group-${groupIndex}`}
+            >
+              {group.label && (
+                <span className="admin-navigation-label">
+                  {group.label}
+                </span>
+              )}
+
+              {group.items.map((item) => {
+                const active =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={active ? "active" : ""}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span aria-hidden>{item.icon}</span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="admin-sidebar-footer">
@@ -101,6 +166,7 @@ export default function AdminShell({
 
           <div className="admin-breadcrumbs">
             <Link href="/admin/dashboard">Início</Link>
+
             {segments.map((segment, index) => (
               <span key={`${segment}-${index}`}>
                 <b>/</b>
@@ -114,6 +180,7 @@ export default function AdminShell({
               <strong>{settings.tradeName}</strong>
               <small>Administrador</small>
             </div>
+
             <button type="button" onClick={logout}>
               Sair
             </button>

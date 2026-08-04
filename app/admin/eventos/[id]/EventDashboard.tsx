@@ -6,73 +6,75 @@ type EventDashboardProps = {
   event: EventItem;
 };
 
-export default function EventDashboard({
-  event,
-}: EventDashboardProps) {
-  const total = event.guests.length;
-
+export default function EventDashboard({ event }: EventDashboardProps) {
+  const totalInvites = event.guests.length;
   const confirmed = event.guests.filter(
     (guest) => guest.status === "confirmed"
   );
-
-  const pending = event.guests.filter(
-    (guest) => guest.status === "pending"
-  );
-
-  const declined = event.guests.filter(
-    (guest) => guest.status === "declined"
+  const pending = event.guests.filter((guest) => guest.status === "pending");
+  const declined = event.guests.filter((guest) => guest.status === "declined");
+  const totalParticipants = confirmed.reduce(
+    (sum, guest) => sum + (guest.participants || 1),
+    0
   );
 
   const confirmationRate =
-    total > 0
-      ? Math.round((confirmed.length / total) * 100)
+    totalInvites > 0
+      ? Math.round((confirmed.length / totalInvites) * 100)
       : 0;
 
   const confirmedByDate = event.dates.map((eventDate) => ({
     id: eventDate.id,
     label: eventDate.label,
-    total: confirmed.filter(
+    invites: confirmed.filter(
       (guest) => guest.selectedDate === eventDate.label
     ).length,
+    participants: confirmed
+      .filter((guest) => guest.selectedDate === eventDate.label)
+      .reduce((sum, guest) => sum + (guest.participants || 1), 0),
   }));
 
   return (
     <section className="event-dashboard">
       <div className="dashboard-heading">
         <div>
-          <span className="dashboard-eyebrow">
-            VISÃO GERAL
-          </span>
-
+          <span className="dashboard-eyebrow">VISÃO GERAL</span>
           <h2>Dashboard do evento</h2>
         </div>
-
-        <span className="dashboard-update">
-          Atualizado com as respostas registradas
-        </span>
+        <div className="dashboard-heading-actions">
+          <span className="dashboard-update">
+            Atualizado com as respostas registradas
+          </span>
+          <a
+            className="export-guests-button"
+            href={`/api/eventos/${event.id}/exportar-convidados`}
+          >
+            Exportar convidados
+          </a>
+        </div>
       </div>
 
       <div className="dashboard-cards">
         <article className="metric-card">
-          <span>Total de convidados</span>
-          <strong>{total}</strong>
+          <span>Total de convites</span>
+          <strong>{totalInvites}</strong>
         </article>
-
         <article className="metric-card confirmed">
-          <span>Confirmados</span>
+          <span>Convites confirmados</span>
           <strong>{confirmed.length}</strong>
         </article>
-
+        <article className="metric-card participants">
+          <span>Participantes confirmados</span>
+          <strong>{totalParticipants}</strong>
+        </article>
         <article className="metric-card pending">
           <span>Pendentes</span>
           <strong>{pending.length}</strong>
         </article>
-
         <article className="metric-card declined">
           <span>Não participarão</span>
           <strong>{declined.length}</strong>
         </article>
-
         <article className="metric-card rate">
           <span>Taxa de confirmação</span>
           <strong>{confirmationRate}%</strong>
@@ -84,7 +86,7 @@ export default function EventDashboard({
           <div className="panel-heading">
             <div>
               <span>Distribuição</span>
-              <h3>Confirmados por data</h3>
+              <h3>Participantes por data</h3>
             </div>
           </div>
 
@@ -92,67 +94,69 @@ export default function EventDashboard({
             <div className="date-results">
               {confirmedByDate.map((item) => {
                 const percentage =
-                  confirmed.length > 0
-                    ? Math.round(
-                        (item.total / confirmed.length) * 100
-                      )
+                  totalParticipants > 0
+                    ? Math.round((item.participants / totalParticipants) * 100)
                     : 0;
 
                 return (
                   <div className="date-result" key={item.id}>
                     <div className="date-result-header">
                       <span>{item.label}</span>
-                      <strong>{item.total}</strong>
+                      <strong>{item.participants}</strong>
                     </div>
-
+                    <small>{item.invites} convite(s) confirmado(s)</small>
                     <div className="progress">
-                      <span
-                        style={{
-                          width: `${percentage}%`,
-                        }}
-                      />
+                      <span style={{ width: `${percentage}%` }} />
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="dashboard-empty">
-              Nenhuma data cadastrada.
-            </p>
+            <p className="dashboard-empty">Nenhuma data cadastrada.</p>
           )}
         </article>
 
-        <article className="dashboard-panel">
+        <article className="dashboard-panel confirmed-panel">
           <div className="panel-heading">
             <div>
               <span>Participantes</span>
               <h3>Lista de confirmados</h3>
             </div>
-
-            <strong>{confirmed.length}</strong>
+            <strong>{totalParticipants}</strong>
           </div>
 
           {confirmed.length > 0 ? (
-            <div className="confirmed-list">
-              {confirmed.map((guest) => (
-                <div className="confirmed-row" key={guest.id}>
-                  <div>
-                    <strong>{guest.name}</strong>
-
-                    <span>
-                      {guest.email}
-                      {guest.company
-                        ? ` · ${guest.company}`
-                        : ""}
-                    </span>
-                  </div>
-
-                  <div className="confirmed-date">
-                    {guest.selectedDate || "Data não informada"}
-                  </div>
-                </div>
-              ))}
+            <div className="confirmed-table-wrap">
+              <table className="confirmed-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Participantes</th>
+                    <th>Observação</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {confirmed.map((guest) => (
+                    <tr key={guest.id}>
+                      <td>
+                        <strong>{guest.name}</strong>
+                        {guest.company && <small>{guest.company}</small>}
+                      </td>
+                      <td>{guest.participants || 1}</td>
+                      <td className="observation-cell">
+                        {guest.notes || "—"}
+                      </td>
+                      <td>
+                        <span className="confirmed-date">
+                          {guest.selectedDate || "Data não informada"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <p className="dashboard-empty">

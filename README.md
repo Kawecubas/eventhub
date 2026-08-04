@@ -1,31 +1,63 @@
-# Comprovante de confirmação
+# EventHub — menus e templates de e-mail
 
-## Arquivos
+Este patch adiciona:
 
-1. Substitua `app/eventos/[slug]/EventResponse.tsx`.
-2. Copie `app/eventos/[slug]/comprovante.css`.
-3. No `app/eventos/[slug]/page.tsx`, mantenha o `public.css` e adicione:
+## Menu global de comunicação
 
-```tsx
-import "./comprovante.css";
+- `/admin/templates`
+- `/admin/templates/novo`
+- `/admin/templates/[id]`
+- `/admin/configuracoes/email` — rota já existente no projeto
+
+## Menu dentro do evento
+
+- `/admin/eventos/[id]/email`
+- `/admin/eventos/[id]/email/selecionar-template`
+- acesso à área de convidados/envio
+
+## Banco Neon
+
+A tabela é criada automaticamente:
+
+```sql
+CREATE TABLE IF NOT EXISTS eventhub_email_templates (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  type TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  html TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
-## Dependência do QR Code
+## Ajuste obrigatório em EventItem
 
-```bash
-npm install qrcode
-npm install -D @types/qrcode
+Confirme em `lib/event-platform-store.ts`:
+
+```ts
+emailHtml?: string;
 ```
 
-## Agenda
+No `normalizeEvent()`:
 
-Os links Google Agenda e Outlook aparecem quando a data escolhida contém `DD/MM/AAAA`. O horário é identificado em textos como `19:30`, `19h30` ou `às 19h`. Se não houver horário, o padrão será 09:00 e duração de duas horas.
+```ts
+emailHtml: String(source.emailHtml ?? ""),
+```
 
-Depois execute:
+## Sidebar
 
-```bash
+Use o conteúdo de `SIDEBAR_MENU_SNIPPET.tsx` como referência e copie os dois links para sua sidebar atual.
+
+## Página do evento
+
+Use `EVENT_PAGE_SNIPPET.tsx` para inserir o menu de comunicação dentro do evento.
+
+## Build
+
+```powershell
+Remove-Item .next -Recurse -Force -ErrorAction SilentlyContinue
 npm run build
-git add .
-git commit -m "feat: adiciona comprovante, QR Code e agenda"
-git push origin main
 ```

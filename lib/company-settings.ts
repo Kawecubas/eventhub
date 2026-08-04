@@ -1,5 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 
+export type EmailProvider = "resend" | "gmail" | "microsoft365" | "smtp";
+
 export type CompanySettings = {
   id: "company";
   legalName: string;
@@ -19,6 +21,12 @@ export type CompanySettings = {
   footerText: string;
   emailFrom: string;
   emailReplyTo: string;
+  emailProvider: EmailProvider;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpPasswordEncrypted: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -38,28 +46,35 @@ const DEFAULT_SETTINGS: CompanySettings = {
   primaryColor: "#173b57",
   secondaryColor: "#d5a44c",
   loginTitle: "Gestão de eventos",
-  loginDescription: "Acesse para criar eventos, gerenciar convidados e acompanhar confirmações.",
+  loginDescription:
+    "Acesse para criar eventos, gerenciar convidados e acompanhar confirmações.",
   footerText: "Gestão de eventos",
   emailFrom: process.env.EMAIL_FROM ?? "",
   emailReplyTo: process.env.EMAIL_REPLY_TO ?? "",
+  emailProvider: "resend",
+  smtpHost: "",
+  smtpPort: 587,
+  smtpSecure: false,
+  smtpUser: "",
+  smtpPasswordEncrypted: "",
   createdAt: new Date(0).toISOString(),
   updatedAt: new Date(0).toISOString(),
 };
 
 function databaseUrl(): string {
   const value =
-    process.env.event_hub_POSTGRES_URL ||
     process.env.DATABASE_URL ||
+    process.env.event_hub_POSTGRES_URL ||
     process.env.event_hub_DATABASE_URL_UNPOOLED ||
     process.env.event_hub_POSTGRES_URL_NON_POOLING ||
     process.env.eventhub_POSTGRES_URL ||
     process.env.eventhub_POSTGRES_PRISMA_URL;
 
   if (!value) {
-    throw new Error("Banco não configurado. Defina DATABASE_URL na Vercel.");
+    throw new Error("Banco não configurado. Defina DATABASE_URL.");
   }
 
-  return value;
+  return value.trim();
 }
 
 function sqlClient() {
@@ -98,6 +113,21 @@ function color(value: unknown, fallback: string): string {
   return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized : fallback;
 }
 
+function provider(value: unknown): EmailProvider {
+  return value === "gmail" ||
+    value === "microsoft365" ||
+    value === "smtp"
+    ? value
+    : "resend";
+}
+
+function port(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 65535
+    ? parsed
+    : 587;
+}
+
 function normalizeSettings(value: unknown): CompanySettings {
   const source = (value ?? {}) as Partial<CompanySettings>;
   const now = new Date().toISOString();
@@ -117,7 +147,10 @@ function normalizeSettings(value: unknown): CompanySettings {
     favicon: text(source.favicon),
     loginBanner: text(source.loginBanner),
     primaryColor: color(source.primaryColor, DEFAULT_SETTINGS.primaryColor),
-    secondaryColor: color(source.secondaryColor, DEFAULT_SETTINGS.secondaryColor),
+    secondaryColor: color(
+      source.secondaryColor,
+      DEFAULT_SETTINGS.secondaryColor
+    ),
     loginTitle: text(source.loginTitle) || DEFAULT_SETTINGS.loginTitle,
     loginDescription:
       text(source.loginDescription) || DEFAULT_SETTINGS.loginDescription,
@@ -125,57 +158,30 @@ function normalizeSettings(value: unknown): CompanySettings {
     emailFrom: text(source.emailFrom) || process.env.EMAIL_FROM || "",
     emailReplyTo:
       text(source.emailReplyTo) || process.env.EMAIL_REPLY_TO || "",
+    emailProvider: provider(source.emailProvider),
+    smtpHost: text(source.smtpHost),
+    smtpPort: port(source.smtpPort),
+    smtpSecure: Boolean(source.smtpSecure),
+    smtpUser: text(source.smtpUser),
+    smtpPasswordEncrypted: text(source.smtpPasswordEncrypted),
     createdAt: text(source.createdAt) || now,
     updatedAt: text(source.updatedAt) || now,
   };
 }
 
 export async function getCompanySettings(): Promise<CompanySettings> {
-  try {
-    const url = databaseUrl();
-    const parsedUrl = new URL(url);
+  await ensureSettingsTable();
+  const sql = sqlClient();
+  const rows = await sql`
+    SELECT data
+    FROM eventhub_settings
+    WHERE id = 'company'
+    LIMIT 1
+  `;
 
-    console.log("[SETTINGS] Banco utilizado:", {
-      host: parsedUrl.hostname,
-      database: parsedUrl.pathname,
-    });
-
-    await ensureSettingsTable();
-
-    const sql = sqlClient();
-
-    const rows = await sql`
-      SELECT data
-      FROM eventhub_settings
-      WHERE id = 'company'
-      LIMIT 1
-    `;
-
-    console.log("[SETTINGS] Quantidade de registros:", rows.length);
-    console.log("[SETTINGS] Dados do Neon:", rows[0]?.data);
-    console.log(
-      "[SETTINGS] Banner encontrado:",
-      rows[0]?.data?.loginBanner
-    );
-
-    const settings = rows[0]
-      ? normalizeSettings(rows[0].data)
-      : normalizeSettings(DEFAULT_SETTINGS);
-
-    console.log(
-      "[SETTINGS] Banner normalizado:",
-      settings.loginBanner
-    );
-
-    return settings;
-  } catch (error) {
-    console.error(
-      "[COMPANY SETTINGS] Falha ao carregar configurações:",
-      error
-    );
-
-    throw error;
-  }
+  return rows[0]
+    ? normalizeSettings(rows[0].data)
+    : normalizeSettings(DEFAULT_SETTINGS);
 }
 
 export async function saveCompanySettings(
@@ -189,7 +195,10 @@ export async function saveCompanySettings(
     ...current,
     ...input,
     id: "company",
-    createdAt: current.createdAt === new Date(0).toISOString() ? now : current.createdAt,
+    createdAt:
+      current.createdAt === new Date(0).toISOString()
+        ? now
+        : current.createdAt,
     updatedAt: now,
   });
 
@@ -207,4 +216,12 @@ export async function saveCompanySettings(
   `;
 
   return settings;
+}
+
+export function publicCompanySettings(settings: CompanySettings) {
+  const { smtpPasswordEncrypted: _secret, ...publicSettings } = settings;
+  return {
+    ...publicSettings,
+    smtpPasswordConfigured: Boolean(settings.smtpPasswordEncrypted),
+  };
 }

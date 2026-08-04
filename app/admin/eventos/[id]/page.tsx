@@ -3,26 +3,33 @@ import { notFound, redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin-auth";
 import { getEvent } from "@/lib/event-platform-store";
 
-import EventDashboard from "./EventDashboard";
 import EventEditor from "./EventEditor";
-import DeleteEventButton from "./DeleteEventButton";
+import EventNavigation from "./EventNavigation";
+import "./editor.css";
 
 export const dynamic = "force-dynamic";
 
+type EditorTab = "dados" | "visual" | "datas" | "convidados";
+
 type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ aba?: string | string[] }>;
 };
 
-export default async function Page({
-  params,
-}: PageProps) {
+function resolveTab(value: string | string[] | undefined): EditorTab {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === "visual" || raw === "datas" || raw === "convidados"
+    ? raw
+    : "dados";
+}
+
+export default async function Page({ params, searchParams }: PageProps) {
   if (!(await isAdmin())) {
     redirect("/admin/login");
   }
 
   const { id } = await params;
+  const query = await searchParams;
   const event = await getEvent(id);
 
   if (!event) {
@@ -31,24 +38,8 @@ export default async function Page({
 
   return (
     <>
-      <EventDashboard event={event} />
-      <EventEditor initial={event} />
-    
-    <section className="danger-zone">
-      <div>
-        <span>ZONA DE PERIGO</span>
-        <h2>Excluir evento</h2>
-        <p>
-          Exclua permanentemente o evento e todos os seus dados.
-        </p>
-      </div>
-
-      <DeleteEventButton
-        eventId={event.id}
-        eventName={event.name}
-      />
-    </section>
-  </>
+      <EventNavigation eventId={event.id} />
+      <EventEditor initial={event} initialTab={resolveTab(query.aba)} />
+    </>
   );
-
 }

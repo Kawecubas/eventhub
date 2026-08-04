@@ -18,6 +18,7 @@ type ReceiptData = {
   status: "confirmed" | "declined";
   selectedDate?: string;
   notes?: string;
+  participants?: number;
   respondedAt: string;
 };
 
@@ -129,6 +130,7 @@ export default function EventResponse({
           status: guest.status === "declined" ? "declined" : "confirmed",
           selectedDate: guest.selectedDate,
           notes: guest.notes,
+          participants: guest.participants || 1,
           respondedAt: guest.respondedAt,
         }}
       />
@@ -172,9 +174,19 @@ function ConfirmationReceipt({
 
   return (
     <section className="confirmation-receipt">
+      <div className="receipt-print-actions no-print">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          aria-label="Imprimir confirmação ou salvar em PDF"
+        >
+          Imprimir / Salvar em PDF
+        </button>
+      </div>
+
       {event.banner && (
         <div className="receipt-banner">
-          <img src={event.banner} alt="" />
+          <img src={event.banner} alt={`Imagem do evento ${event.name}`} />
         </div>
       )}
 
@@ -224,6 +236,13 @@ function ConfirmationReceipt({
             <div>
               <span>Data escolhida</span>
               <strong>{response.selectedDate}</strong>
+            </div>
+          )}
+
+          {confirmed && (
+            <div>
+              <span>Participantes</span>
+              <strong>{response.participants || 1}</strong>
             </div>
           )}
 
@@ -303,6 +322,7 @@ function ResponseForm({
   );
   const [selectedDate, setSelectedDate] = useState(guest.selectedDate || "");
   const [notes, setNotes] = useState(guest.notes || "");
+  const [participants, setParticipants] = useState(guest.participants || 1);
   const [loading, setLoading] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [submitError, setSubmitError] = useState("");
@@ -329,6 +349,7 @@ function ResponseForm({
             status,
             selectedDate: status === "confirmed" ? selectedDate : "",
             notes,
+            participants: status === "confirmed" ? participants : 1,
           }),
         }
       );
@@ -346,6 +367,7 @@ function ResponseForm({
         status,
         selectedDate: status === "confirmed" ? selectedDate : undefined,
         notes,
+        participants: status === "confirmed" ? participants : 1,
         respondedAt: new Date().toISOString(),
       });
     } catch {
@@ -414,6 +436,33 @@ function ResponseForm({
             </label>
           ))}
         </fieldset>
+      )}
+
+
+      {status === "confirmed" && (
+        <div className="participant-quantity">
+          <span>Quantidade de participantes</span>
+          <div className="quantity-control" role="group" aria-label="Quantidade de participantes">
+            <button
+              type="button"
+              onClick={() => setParticipants((current) => Math.max(1, current - 1))}
+              disabled={participants <= 1}
+              aria-label="Diminuir quantidade"
+            >
+              −
+            </button>
+            <strong aria-live="polite">{participants}</strong>
+            <button
+              type="button"
+              onClick={() => setParticipants((current) => Math.min(10, current + 1))}
+              disabled={participants >= 10}
+              aria-label="Aumentar quantidade"
+            >
+              +
+            </button>
+          </div>
+          <small>Inclua você e seus acompanhantes. Máximo de 10 pessoas por convite.</small>
+        </div>
       )}
 
       <label>
