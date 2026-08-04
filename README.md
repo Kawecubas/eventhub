@@ -1,63 +1,50 @@
-# EventHub — menus e templates de e-mail
+# Atualização do Email Designer
 
-Este patch adiciona:
+Este patch:
 
-## Menu global de comunicação
+- remove completamente o uso de PDF.js;
+- aceita PNG, JPG/JPEG e WEBP;
+- permite upload de PNG para a arte principal;
+- permite upload de PNG para a logo do rodapé;
+- restaura o editor completo do rodapé;
+- adiciona telefone, e-mail, website e redes sociais;
+- adiciona cores do rodapé;
+- adiciona opção para mostrar ou esconder a saudação automática.
 
-- `/admin/templates`
-- `/admin/templates/novo`
-- `/admin/templates/[id]`
-- `/admin/configuracoes/email` — rota já existente no projeto
+## Arquivos
 
-## Menu dentro do evento
+Substitua:
 
-- `/admin/eventos/[id]/email`
-- `/admin/eventos/[id]/email/selecionar-template`
-- acesso à área de convidados/envio
-
-## Banco Neon
-
-A tabela é criada automaticamente:
-
-```sql
-CREATE TABLE IF NOT EXISTS eventhub_email_templates (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  type TEXT NOT NULL,
-  subject TEXT NOT NULL,
-  html TEXT NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+```text
+app/admin/eventos/[id]/email/EmailDesigner.tsx
+lib/email-template-builder.ts
+app/api/eventos/[id]/email-template/route.ts
 ```
 
-## Ajuste obrigatório em EventItem
+Copie também:
 
-Confirme em `lib/event-platform-store.ts`:
+```text
+app/admin/eventos/[id]/email/footer-designer.css
+```
+
+No arquivo:
+
+```text
+app/admin/eventos/[id]/email/page.tsx
+```
+
+adicione:
 
 ```ts
-emailHtml?: string;
+import "./footer-designer.css";
 ```
 
-No `normalizeEvent()`:
+caso ele ainda não esteja importado por outro CSS.
 
-```ts
-emailHtml: String(source.emailHtml ?? ""),
-```
-
-## Sidebar
-
-Use o conteúdo de `SIDEBAR_MENU_SNIPPET.tsx` como referência e copie os dois links para sua sidebar atual.
-
-## Página do evento
-
-Use `EVENT_PAGE_SNIPPET.tsx` para inserir o menu de comunicação dentro do evento.
-
-## Build
+## Remover PDF.js
 
 ```powershell
+npm uninstall pdfjs-dist
 Remove-Item .next -Recurse -Force -ErrorAction SilentlyContinue
 npm run build
 ```

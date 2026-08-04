@@ -1,21 +1,46 @@
 .confirmation-receipt {
+  width: 100%;
   overflow: hidden;
-  border: 1px solid #e1e7ec;
-  border-radius: 18px;
+  box-sizing: border-box;
   background: #fff;
   color: #17212b;
 }
 
+.receipt-print-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e8edf1;
+  background: #fff;
+}
+
+.receipt-print-actions button {
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--primary, #173b57);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
 .receipt-banner {
+  width: 100%;
   overflow: hidden;
-  height: 180px;
   background: #eef2f5;
+  border-bottom: 1px solid #e8edf2;
 }
 
 .receipt-banner img {
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  height: auto;
+  max-height: 430px;
+  object-fit: contain;
+  object-position: center;
+  background: #eef2f5;
 }
 
 .receipt-header,
@@ -36,6 +61,8 @@
 }
 
 .receipt-logo {
+  display: block;
+  width: auto;
   max-width: 180px;
   max-height: 68px;
   object-fit: contain;
@@ -56,6 +83,7 @@
   display: inline-flex;
   width: 42px;
   height: 42px;
+  flex: 0 0 42px;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
@@ -83,6 +111,7 @@
   grid-template-columns: minmax(0, 1fr) 210px;
   gap: 28px;
   padding: 26px;
+  box-sizing: border-box;
   border: 1px solid #e7ebef;
   border-radius: 14px;
   background: #f9fbfc;
@@ -97,7 +126,13 @@
 .receipt-details div { min-width: 0; }
 .receipt-details span,
 .receipt-details strong { display: block; }
-.receipt-details span { margin-bottom: 5px; color: #71808c; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.receipt-details span {
+  margin-bottom: 5px;
+  color: #71808c;
+  font-size: 12px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
 .receipt-details strong { overflow-wrap: anywhere; }
 .receipt-notes { grid-column: 1 / -1; }
 
@@ -120,6 +155,7 @@
   background: #fff;
 }
 
+.receipt-qr img { display: block; max-width: 100%; }
 .qr-placeholder {
   display: flex;
   align-items: center;
@@ -127,7 +163,6 @@
   color: #71808c;
   font-size: 12px;
 }
-
 .receipt-qr span { margin-top: 5px; color: #71808c; font-size: 12px; line-height: 1.4; }
 
 .calendar-actions {
@@ -137,6 +172,7 @@
   gap: 24px;
   margin-top: 24px;
   padding: 22px;
+  box-sizing: border-box;
   border-radius: 14px;
   background: #eef4f7;
 }
@@ -144,7 +180,6 @@
 .calendar-actions > div:first-child strong,
 .calendar-actions > div:first-child span { display: block; }
 .calendar-actions > div:first-child span { margin-top: 4px; color: #65737e; font-size: 12px; }
-
 .calendar-buttons { display: flex; gap: 10px; }
 .calendar-buttons a {
   padding: 11px 15px;
@@ -153,15 +188,20 @@
   color: #fff;
   text-decoration: none;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
 }
-
 .calendar-warning { max-width: 280px; color: #956300; font-size: 12px; text-align: right; }
-.response-note { margin-top: 22px; margin-bottom: 26px; color: #71808c; font-size: 12px; text-align: center; }
+.response-note { margin-top: 22px; margin-bottom: 28px; color: #71808c; font-size: 12px; text-align: center; }
 
 @media (max-width: 720px) {
+  .receipt-banner img { max-height: none; }
+  .receipt-header,
+  .receipt-intro,
+  .receipt-content,
+  .calendar-actions,
+  .response-note { margin-right: 18px; margin-left: 18px; }
   .receipt-header { align-items: flex-start; flex-direction: column; }
-  .receipt-content { grid-template-columns: 1fr; }
+  .receipt-content { grid-template-columns: 1fr; padding: 20px; }
   .receipt-details { grid-template-columns: 1fr; }
   .receipt-qr { padding-top: 22px; padding-left: 0; border-top: 1px solid #e1e7ec; border-left: 0; }
   .calendar-actions { align-items: stretch; flex-direction: column; }
@@ -170,120 +210,43 @@
   .calendar-warning { max-width: none; text-align: left; }
 }
 
-.receipt-print-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px 20px 0;
-}
-
-.receipt-print-actions button {
-  padding: 11px 16px;
-  border: 0;
-  border-radius: 9px;
-  background: var(--primary, #173b57);
-  color: #ffffff;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-}
-
-.receipt-print-actions button:hover {
-  filter: brightness(.94);
-}
-
-/* A arte é exibida inteira dentro da área do comprovante, sem cortes. */
-.receipt-banner {
-  display: flex;
-  width: 100%;
-  height: auto;
-  min-height: 180px;
-  max-height: 340px;
-  align-items: center;
-  justify-content: center;
-  background: #eef2f5;
-}
-
-.receipt-banner img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-height: 340px;
-  object-fit: contain;
-  object-position: center;
-}
-
 @media print {
-  @page {
-    size: A4;
-    margin: 10mm;
-  }
-
-  html,
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #ffffff !important;
-  }
-
-  body * {
-    visibility: hidden !important;
-  }
-
+  @page { size: A4 portrait; margin: 10mm; }
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  body * { visibility: hidden !important; }
   .confirmation-receipt,
-  .confirmation-receipt * {
-    visibility: visible !important;
-  }
-
-  .confirmation-receipt {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
-    max-width: none;
-    overflow: visible;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    background: #ffffff;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-
+  .confirmation-receipt * { visibility: visible !important; }
   .no-print,
   .event-header,
   .event-hero,
-  .event-footer {
-    display: none !important;
+  .event-footer { display: none !important; }
+  .confirmation-receipt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    max-width: 190mm !important;
+    overflow: hidden !important;
+    background: #fff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
-
-  .receipt-banner {
-    max-height: 72mm;
-    page-break-inside: avoid;
-  }
-
+  .receipt-banner { width: 100% !important; max-height: none !important; page-break-inside: avoid; }
   .receipt-banner img {
-    max-height: 72mm;
-    object-fit: contain;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 76mm !important;
+    object-fit: contain !important;
   }
-
   .receipt-header,
   .receipt-intro,
   .receipt-content,
   .calendar-actions,
-  .response-note {
-    margin-right: 8mm;
-    margin-left: 8mm;
-  }
-
+  .response-note { margin-right: 8mm !important; margin-left: 8mm !important; }
   .receipt-header,
   .receipt-content,
   .calendar-actions,
   .receipt-qr,
-  .receipt-details > div {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  .calendar-buttons a {
-    border: 1px solid var(--primary, #173b57);
-  }
+  .receipt-details > div { page-break-inside: avoid; break-inside: avoid; }
 }
