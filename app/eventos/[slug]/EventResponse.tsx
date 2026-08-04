@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
 
 import type {
+  EventFormField,
   EventGuest,
   EventItem,
 } from "@/lib/event-platform-store";
@@ -19,6 +20,7 @@ type ReceiptData = {
   selectedDate?: string;
   notes?: string;
   participants?: number;
+  formAnswers?: Record<string, string | boolean | number>;
   respondedAt: string;
 };
 
@@ -36,12 +38,16 @@ function formatDateTime(value?: string) {
 function parseEventDate(dateLabel?: string, startInfo?: string) {
   if (!dateLabel) return null;
 
-  const dateMatch = dateLabel.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  const dateMatch = dateLabel.match(
+    /(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/
+  );
   if (!dateMatch) return null;
 
   const [, day, month, year] = dateMatch;
   const combinedText = `${dateLabel} ${startInfo ?? ""}`;
-  const timeMatch = combinedText.match(/(?:às?|\s)(\d{1,2})(?::|h)(\d{2})?/i);
+  const timeMatch = combinedText.match(
+    /(?:às?|\s)(\d{1,2})(?::|h)(\d{2})?/i
+  );
 
   const hour = timeMatch ? Number(timeMatch[1]) : 9;
   const minute = timeMatch?.[2] ? Number(timeMatch[2]) : 0;
@@ -51,19 +57,22 @@ function parseEventDate(dateLabel?: string, startInfo?: string) {
     Number(month) - 1,
     Number(day),
     hour,
-    minute,
-    0,
-    0
+    minute
   );
 
   if (Number.isNaN(start.getTime())) return null;
 
-  const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
-  return { start, end };
+  return {
+    start,
+    end: new Date(start.getTime() + 2 * 60 * 60 * 1000),
+  };
 }
 
 function toGoogleDate(date: Date) {
-  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  return date
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
 }
 
 function calendarLinks(event: EventItem, selectedDate?: string) {
@@ -77,7 +86,9 @@ function calendarLinks(event: EventItem, selectedDate?: string) {
     .filter(Boolean)
     .join("\n\n");
 
-  const google = new URL("https://calendar.google.com/calendar/render");
+  const google = new URL(
+    "https://calendar.google.com/calendar/render"
+  );
   google.searchParams.set("action", "TEMPLATE");
   google.searchParams.set("text", event.name);
   google.searchParams.set(
@@ -114,8 +125,8 @@ export default function EventResponse({
       <section className="event-message">
         <h2>{error || "Convite não localizado."}</h2>
         <p>
-          Abra o link individual recebido por e-mail ou solicite um novo
-          convite ao organizador.
+          Abra o link individual recebido por e-mail ou solicite um
+          novo convite ao organizador.
         </p>
       </section>
     );
@@ -127,10 +138,14 @@ export default function EventResponse({
         event={event}
         guest={guest}
         response={{
-          status: guest.status === "declined" ? "declined" : "confirmed",
+          status:
+            guest.status === "declined"
+              ? "declined"
+              : "confirmed",
           selectedDate: guest.selectedDate,
           notes: guest.notes,
           participants: guest.participants || 1,
+          formAnswers: guest.formAnswers || {},
           respondedAt: guest.respondedAt,
         }}
       />
@@ -161,9 +176,7 @@ function ConfirmationReceipt({
   );
 
   useEffect(() => {
-    const invitationUrl = window.location.href;
-
-    QRCode.toDataURL(invitationUrl, {
+    QRCode.toDataURL(window.location.href, {
       width: 240,
       margin: 1,
       errorCorrectionLevel: "M",
@@ -172,30 +185,46 @@ function ConfirmationReceipt({
       .catch(() => setQrCode(""));
   }, []);
 
+  const customAnswers = (event.formFields || []).filter(
+    (field) =>
+      field.visible !== false &&
+      ["short_text", "long_text", "select", "checkbox"].includes(
+        field.type
+      ) &&
+      response.formAnswers?.[field.id] !== undefined
+  );
+
   return (
     <section className="confirmation-receipt">
       <div className="receipt-print-actions no-print">
-        <button
-          type="button"
-          onClick={() => window.print()}
-          aria-label="Imprimir confirmação ou salvar em PDF"
-        >
+        <button type="button" onClick={() => window.print()}>
           Imprimir / Salvar em PDF
         </button>
       </div>
 
       {event.banner && (
         <div className="receipt-banner">
-          <img src={event.banner} alt={`Imagem do evento ${event.name}`} />
+          <img
+            src={event.banner}
+            alt={`Imagem do evento ${event.name}`}
+          />
         </div>
       )}
 
       <div className="receipt-header">
         {event.logo && (
-          <img className="receipt-logo" src={event.logo} alt={event.name} />
+          <img
+            className="receipt-logo"
+            src={event.logo}
+            alt={event.name}
+          />
         )}
 
-        <div className={`receipt-status ${confirmed ? "confirmed" : "declined"}`}>
+        <div
+          className={`receipt-status ${
+            confirmed ? "confirmed" : "declined"
+          }`}
+        >
           <span>{confirmed ? "✓" : "—"}</span>
           <div>
             <small>COMPROVANTE DE RESPOSTA</small>
@@ -209,8 +238,8 @@ function ConfirmationReceipt({
       </div>
 
       <p className="receipt-intro">
-        Olá, <strong>{guest.name}</strong>. Sua resposta para o evento{" "}
-        <strong>{event.name}</strong> foi registrada com sucesso.
+        Olá, <strong>{guest.name}</strong>. Sua resposta para o
+        evento <strong>{event.name}</strong> foi registrada.
       </p>
 
       <div className="receipt-content">
@@ -264,13 +293,26 @@ function ConfirmationReceipt({
               <strong>{response.notes}</strong>
             </div>
           )}
+
+          {customAnswers.map((field) => (
+            <div className="receipt-notes" key={field.id}>
+              <span>{field.label}</span>
+              <strong>
+                {response.formAnswers?.[field.id] === true
+                  ? "Sim"
+                  : String(response.formAnswers?.[field.id] ?? "")}
+              </strong>
+            </div>
+          ))}
         </div>
 
         <aside className="receipt-qr">
           {qrCode ? (
             <img src={qrCode} alt="QR Code do convite" />
           ) : (
-            <div className="qr-placeholder">Gerando QR Code...</div>
+            <div className="qr-placeholder">
+              Gerando QR Code...
+            </div>
           )}
           <strong>Convite individual</strong>
           <span>Apresente este QR Code quando solicitado.</span>
@@ -282,29 +324,38 @@ function ConfirmationReceipt({
           <div>
             <strong>Adicione o evento à sua agenda</strong>
             <span>
-              Os botões são exibidos quando a data contém dia, mês e ano.
+              Disponível quando a data possui dia, mês e ano.
             </span>
           </div>
 
           {links ? (
             <div className="calendar-buttons">
-              <a href={links.google} target="_blank" rel="noreferrer">
+              <a
+                href={links.google}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Google Agenda
               </a>
-              <a href={links.outlook} target="_blank" rel="noreferrer">
+              <a
+                href={links.outlook}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Outlook
               </a>
             </div>
           ) : (
             <span className="calendar-warning">
-              Cadastre a data no padrão DD/MM/AAAA para habilitar a agenda.
+              Cadastre a data no padrão DD/MM/AAAA.
             </span>
           )}
         </div>
       )}
 
       <p className="response-note">
-        Para alterar a resposta, entre em contato com o organizador do evento.
+        Para alterar a resposta, entre em contato com o
+        organizador.
       </p>
     </section>
   );
@@ -317,21 +368,80 @@ function ResponseForm({
   event: EventItem;
   guest: EventGuest;
 }) {
-  const [status, setStatus] = useState<"confirmed" | "declined">(
+  const [status, setStatus] = useState<
+    "confirmed" | "declined"
+  >(
     guest.status === "declined" ? "declined" : "confirmed"
   );
-  const [selectedDate, setSelectedDate] = useState(guest.selectedDate || "");
+  const [selectedDate, setSelectedDate] = useState(
+    guest.selectedDate || ""
+  );
   const [notes, setNotes] = useState(guest.notes || "");
-  const [participants, setParticipants] = useState(guest.participants || 1);
+  const [participants, setParticipants] = useState(
+    guest.participants || 1
+  );
+  const [answers, setAnswers] = useState<
+    Record<string, string | boolean | number>
+  >(guest.formAnswers || {});
   const [loading, setLoading] = useState(false);
-  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [receipt, setReceipt] =
+    useState<ReceiptData | null>(null);
   const [submitError, setSubmitError] = useState("");
+
+  const fields = (event.formFields || []).filter(
+    (field) => field.visible !== false
+  );
+
+  function answer(fieldId: string, value: string | boolean | number) {
+    setAnswers((current) => ({
+      ...current,
+      [fieldId]: value,
+    }));
+  }
+
+  function validateFields() {
+    if (status !== "confirmed") return "";
+
+    for (const field of fields) {
+      if (!field.required) continue;
+
+      if (field.type === "event_dates" && !selectedDate) {
+        return `Preencha o campo “${field.label}”.`;
+      }
+
+      if (field.type === "participants" && participants < 1) {
+        return `Preencha o campo “${field.label}”.`;
+      }
+
+      if (field.type === "notes" && !notes.trim()) {
+        return `Preencha o campo “${field.label}”.`;
+      }
+
+      if (
+        ["short_text", "long_text", "select"].includes(field.type) &&
+        !String(answers[field.id] ?? "").trim()
+      ) {
+        return `Preencha o campo “${field.label}”.`;
+      }
+
+      if (
+        field.type === "checkbox" &&
+        answers[field.id] !== true
+      ) {
+        return `Marque o campo “${field.label}”.`;
+      }
+    }
+
+    return "";
+  }
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
 
-    if (status === "confirmed" && !selectedDate) {
-      setSubmitError("Selecione uma data para participar.");
+    const validationError = validateFields();
+
+    if (validationError) {
+      setSubmitError(validationError);
       return;
     }
 
@@ -340,16 +450,21 @@ function ResponseForm({
 
     try {
       const response = await fetch(
-        `/api/eventos/${encodeURIComponent(event.slug)}/responder`,
+        `/api/eventos/${encodeURIComponent(
+          event.slug
+        )}/responder`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             token: guest.token,
             status,
-            selectedDate: status === "confirmed" ? selectedDate : "",
+            selectedDate:
+              status === "confirmed" ? selectedDate : "",
             notes,
-            participants: status === "confirmed" ? participants : 1,
+            participants:
+              status === "confirmed" ? participants : 1,
+            formAnswers: answers,
           }),
         }
       );
@@ -358,16 +473,20 @@ function ResponseForm({
 
       if (!response.ok) {
         setSubmitError(
-          result?.error || "Não foi possível registrar sua resposta."
+          result?.error ||
+            "Não foi possível registrar sua resposta."
         );
         return;
       }
 
       setReceipt({
         status,
-        selectedDate: status === "confirmed" ? selectedDate : undefined,
+        selectedDate:
+          status === "confirmed" ? selectedDate : undefined,
         notes,
-        participants: status === "confirmed" ? participants : 1,
+        participants:
+          status === "confirmed" ? participants : 1,
+        formAnswers: answers,
         respondedAt: new Date().toISOString(),
       });
     } catch {
@@ -377,16 +496,220 @@ function ResponseForm({
     }
   }
 
+  function renderField(field: EventFormField) {
+    if (field.type === "content") {
+      return (
+        <section className="dynamic-content-field" key={field.id}>
+          <h3>{field.label}</h3>
+          {field.description && <p>{field.description}</p>}
+        </section>
+      );
+    }
+
+    if (status !== "confirmed") return null;
+
+    if (field.type === "event_dates") {
+      return (
+        <fieldset key={field.id}>
+          <legend>
+            {field.label}
+            {field.required ? " *" : ""}
+          </legend>
+          {field.description && (
+            <p className="field-description">
+              {field.description}
+            </p>
+          )}
+          {event.dates.map((eventDate) => (
+            <label
+              key={eventDate.id}
+              className={
+                selectedDate === eventDate.label
+                  ? "date on"
+                  : "date"
+              }
+            >
+              <input
+                type="radio"
+                name={`date-${field.id}`}
+                checked={selectedDate === eventDate.label}
+                onChange={() =>
+                  setSelectedDate(eventDate.label)
+                }
+              />
+              {eventDate.label}
+            </label>
+          ))}
+        </fieldset>
+      );
+    }
+
+    if (field.type === "participants") {
+      const maximum = field.maxParticipants || 10;
+
+      return (
+        <div className="participant-quantity" key={field.id}>
+          <span>
+            {field.label}
+            {field.required ? " *" : ""}
+          </span>
+          {field.description && (
+            <p className="field-description">
+              {field.description}
+            </p>
+          )}
+          <div className="quantity-control">
+            <button
+              type="button"
+              onClick={() =>
+                setParticipants((current) =>
+                  Math.max(1, current - 1)
+                )
+              }
+              disabled={participants <= 1}
+            >
+              −
+            </button>
+            <strong>{participants}</strong>
+            <button
+              type="button"
+              onClick={() =>
+                setParticipants((current) =>
+                  Math.min(maximum, current + 1)
+                )
+              }
+              disabled={participants >= maximum}
+            >
+              +
+            </button>
+          </div>
+          <small>Máximo de {maximum} pessoas por convite.</small>
+        </div>
+      );
+    }
+
+    if (field.type === "notes") {
+      return (
+        <label key={field.id}>
+          {field.label}
+          {field.required ? " *" : ""}
+          {field.description && (
+            <span className="field-description">
+              {field.description}
+            </span>
+          )}
+          <textarea
+            value={notes}
+            placeholder={field.placeholder}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+        </label>
+      );
+    }
+
+    if (field.type === "short_text") {
+      return (
+        <label key={field.id}>
+          {field.label}
+          {field.required ? " *" : ""}
+          {field.description && (
+            <span className="field-description">
+              {field.description}
+            </span>
+          )}
+          <input
+            value={String(answers[field.id] ?? "")}
+            placeholder={field.placeholder}
+            onChange={(event) =>
+              answer(field.id, event.target.value)
+            }
+          />
+        </label>
+      );
+    }
+
+    if (field.type === "long_text") {
+      return (
+        <label key={field.id}>
+          {field.label}
+          {field.required ? " *" : ""}
+          {field.description && (
+            <span className="field-description">
+              {field.description}
+            </span>
+          )}
+          <textarea
+            value={String(answers[field.id] ?? "")}
+            placeholder={field.placeholder}
+            onChange={(event) =>
+              answer(field.id, event.target.value)
+            }
+          />
+        </label>
+      );
+    }
+
+    if (field.type === "select") {
+      return (
+        <label key={field.id}>
+          {field.label}
+          {field.required ? " *" : ""}
+          {field.description && (
+            <span className="field-description">
+              {field.description}
+            </span>
+          )}
+          <select
+            value={String(answers[field.id] ?? "")}
+            onChange={(event) =>
+              answer(field.id, event.target.value)
+            }
+          >
+            <option value="">
+              {field.placeholder || "Selecione"}
+            </option>
+            {(field.options || []).map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    }
+
+    return (
+      <label className="dynamic-checkbox" key={field.id}>
+        <input
+          type="checkbox"
+          checked={answers[field.id] === true}
+          onChange={(event) =>
+            answer(field.id, event.target.checked)
+          }
+        />
+        <span>
+          <strong>
+            {field.label}
+            {field.required ? " *" : ""}
+          </strong>
+          {field.description && <small>{field.description}</small>}
+        </span>
+      </label>
+    );
+  }
+
   if (receipt) {
     return (
-      <ConfirmationReceipt event={event} guest={guest} response={receipt} />
+      <ConfirmationReceipt
+        event={event}
+        guest={guest}
+        response={receipt}
+      />
     );
   }
 
   return (
     <form onSubmit={submit}>
-      <h2>Confirme sua participação</h2>
-
       <div className="identity">
         <label>
           Convidado
@@ -418,60 +741,9 @@ function ResponseForm({
         </button>
       </div>
 
-      {status === "confirmed" && (
-        <fieldset>
-          <legend>Escolha uma data</legend>
-          {event.dates.map((eventDate) => (
-            <label
-              key={eventDate.id}
-              className={selectedDate === eventDate.label ? "date on" : "date"}
-            >
-              <input
-                type="radio"
-                name="event-date"
-                checked={selectedDate === eventDate.label}
-                onChange={() => setSelectedDate(eventDate.label)}
-              />
-              {eventDate.label}
-            </label>
-          ))}
-        </fieldset>
-      )}
-
-
-      {status === "confirmed" && (
-        <div className="participant-quantity">
-          <span>Quantidade de participantes</span>
-          <div className="quantity-control" role="group" aria-label="Quantidade de participantes">
-            <button
-              type="button"
-              onClick={() => setParticipants((current) => Math.max(1, current - 1))}
-              disabled={participants <= 1}
-              aria-label="Diminuir quantidade"
-            >
-              −
-            </button>
-            <strong aria-live="polite">{participants}</strong>
-            <button
-              type="button"
-              onClick={() => setParticipants((current) => Math.min(10, current + 1))}
-              disabled={participants >= 10}
-              aria-label="Aumentar quantidade"
-            >
-              +
-            </button>
-          </div>
-          <small>Inclua você e seus acompanhantes. Máximo de 10 pessoas por convite.</small>
-        </div>
-      )}
-
-      <label>
-        Observações
-        <textarea
-          value={notes}
-          onChange={(changeEvent) => setNotes(changeEvent.target.value)}
-        />
-      </label>
+      <div className="dynamic-form-fields">
+        {fields.map(renderField)}
+      </div>
 
       {submitError && (
         <div className="error" role="alert">
@@ -479,7 +751,11 @@ function ResponseForm({
         </div>
       )}
 
-      <button className="submit" type="submit" disabled={loading}>
+      <button
+        className="submit"
+        type="submit"
+        disabled={loading}
+      >
         {loading ? "Enviando..." : "Enviar resposta"}
       </button>
     </form>

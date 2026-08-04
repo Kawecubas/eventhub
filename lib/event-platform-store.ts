@@ -7,6 +7,28 @@ export type EventDate = {
   capacity?: number;
 };
 
+export type EventFormFieldType =
+  | "content"
+  | "short_text"
+  | "long_text"
+  | "select"
+  | "checkbox"
+  | "event_dates"
+  | "participants"
+  | "notes";
+
+export type EventFormField = {
+  id: string;
+  type: EventFormFieldType;
+  label: string;
+  description?: string;
+  placeholder?: string;
+  required?: boolean;
+  visible?: boolean;
+  options?: string[];
+  maxParticipants?: number;
+};
+
 export type EventGuest = {
   id: string;
   token: string;
@@ -18,6 +40,7 @@ export type EventGuest = {
   selectedDate?: string;
   notes?: string;
   participants?: number;
+  formAnswers?: Record<string, string | boolean | number>;
   sentAt?: string;
   respondedAt?: string;
   createdAt: string;
@@ -40,6 +63,7 @@ export type EventItem = {
   emailHtml?: string;
   status: "draft" | "published" | "closed";
   dates: EventDate[];
+  formFields: EventFormField[];
   guests: EventGuest[];
   createdAt: string;
   updatedAt: string;
@@ -125,6 +149,83 @@ function normalizeSlug(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+
+function defaultFormFields(): EventFormField[] {
+  return [
+    {
+      id: "intro",
+      type: "content",
+      label: "Confirme sua participação",
+      description:
+        "Selecione sua resposta e preencha as informações abaixo.",
+      visible: true,
+    },
+    {
+      id: "event-date",
+      type: "event_dates",
+      label: "Escolha uma data",
+      required: true,
+      visible: true,
+    },
+    {
+      id: "participants",
+      type: "participants",
+      label: "Quantidade de participantes",
+      required: true,
+      visible: true,
+      maxParticipants: 10,
+    },
+    {
+      id: "notes",
+      type: "notes",
+      label: "Observações",
+      placeholder: "Digite uma observação, se necessário.",
+      visible: true,
+    },
+  ];
+}
+
+function normalizeFormField(
+  value: Partial<EventFormField>,
+  index: number
+): EventFormField {
+  const allowed: EventFormFieldType[] = [
+    "content",
+    "short_text",
+    "long_text",
+    "select",
+    "checkbox",
+    "event_dates",
+    "participants",
+    "notes",
+  ];
+
+  const type = allowed.includes(value.type as EventFormFieldType)
+    ? (value.type as EventFormFieldType)
+    : "short_text";
+
+  return {
+    id: String(value.id || `field-${index + 1}`),
+    type,
+    label: String(value.label || "Campo"),
+    description: value.description
+      ? String(value.description)
+      : undefined,
+    placeholder: value.placeholder
+      ? String(value.placeholder)
+      : undefined,
+    required: Boolean(value.required),
+    visible: value.visible !== false,
+    options: Array.isArray(value.options)
+      ? value.options.map(String).filter(Boolean)
+      : undefined,
+    maxParticipants:
+      typeof value.maxParticipants === "number"
+        ? Math.min(100, Math.max(1, Math.floor(value.maxParticipants)))
+        : undefined,
+  };
+}
+
 function normalizeEvent(value: unknown): EventItem {
   const source = (value ?? {}) as Partial<EventItem>;
   const now = new Date().toISOString();
@@ -161,6 +262,11 @@ function normalizeEvent(value: unknown): EventItem {
             typeof date.capacity === "number" ? date.capacity : undefined,
         }))
       : [],
+    formFields: Array.isArray(source.formFields)
+      ? source.formFields.map((field, index) =>
+          normalizeFormField(field, index)
+        )
+      : defaultFormFields(),
     guests: Array.isArray(source.guests)
       ? source.guests.map((guest) => ({
           id: String(guest.id),
@@ -181,6 +287,10 @@ function normalizeEvent(value: unknown): EventItem {
             typeof guest.participants === "number" && guest.participants >= 1
               ? Math.floor(guest.participants)
               : 1,
+          formAnswers:
+            guest.formAnswers && typeof guest.formAnswers === "object"
+              ? guest.formAnswers
+              : {},
           sentAt: guest.sentAt ? String(guest.sentAt) : undefined,
           respondedAt: guest.respondedAt
             ? String(guest.respondedAt)
@@ -306,6 +416,7 @@ export async function saveEvent(
     emailHtml: "",
     status: "draft",
     dates: [],
+    formFields: defaultFormFields(),
     guests: [],
     createdAt: now,
     updatedAt: now,
@@ -479,6 +590,7 @@ export async function respond(
     selectedDate?: string;
     notes?: string;
     participants?: number;
+    formAnswers?: Record<string, string | boolean | number>;
   }
 ): Promise<EventGuest | null> {
   const event = await getEvent(slug);
@@ -539,6 +651,10 @@ if (guest.respondedAt) {
 
   guest.status = input.status;
   guest.notes = String(input.notes ?? "").trim();
+  guest.formAnswers =
+    input.formAnswers && typeof input.formAnswers === "object"
+      ? input.formAnswers
+      : {};
   guest.respondedAt = new Date().toISOString();
   event.updatedAt = guest.respondedAt;
 

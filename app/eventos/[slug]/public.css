@@ -1,32 +1,31 @@
 .public-event {
   --primary: #173b57;
   --secondary: #d5a44c;
+
   min-height: 100vh;
-  overflow-x: hidden;
-  background: #f2f5f7;
+  background: #f3f6f9;
   color: #17212b;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .event-header {
-  height: 82px;
+  height: 88px;
   display: flex;
   align-items: center;
-  background: #fff;
-  border-bottom: 1px solid #e4e9ed;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e9ee;
 }
 
-.event-header-content,
-.event-hero-content {
-  width: min(1180px, calc(100% - 40px));
+.event-header-content {
+  width: min(1420px, calc(100% - 48px));
   margin: 0 auto;
 }
 
 .event-logo {
   display: block;
   width: auto;
-  max-width: 190px;
-  max-height: 54px;
+  max-width: 180px;
+  max-height: 56px;
   object-fit: contain;
 }
 
@@ -35,171 +34,158 @@
   font-size: 22px;
 }
 
+/* Com banner: exibe somente a arte, sem repetir título, descrição e local. */
+.event-banner {
+  width: 100%;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.event-banner img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Sem banner: mantém o cabeçalho institucional do evento. */
 .event-hero {
-  min-height: 410px;
-  padding: 72px 20px 130px;
+  min-height: 340px;
+  padding: 64px 24px 92px;
   box-sizing: border-box;
-  background-size: cover;
-  background-position: center;
-  color: #fff;
+  color: #ffffff;
 }
 
 .event-hero-content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  width: min(1420px, 100%);
+  margin: 0 auto;
 }
 
 .event-eyebrow {
-  margin-bottom: 14px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .18em;
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .event-hero h1 {
-  max-width: 760px;
+  max-width: 720px;
   margin: 0;
-  font-size: clamp(44px, 7vw, 76px);
-  line-height: .98;
-  letter-spacing: -.035em;
+  font-size: clamp(38px, 6vw, 68px);
+  line-height: 1;
 }
 
 .event-description {
   max-width: 700px;
-  margin: 24px 0 0;
-  color: rgba(255,255,255,.9);
+  margin: 20px 0 0;
   font-size: 18px;
   line-height: 1.6;
 }
 
 .event-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 30px;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 28px;
+  font-size: 18px;
 }
 
-.event-meta > div {
-  min-width: 190px;
-  padding: 13px 16px;
-  border: 1px solid rgba(255,255,255,.22);
-  border-radius: 12px;
-  background: rgba(4,22,39,.24);
-  backdrop-filter: blur(8px);
+/* O título de confirmação fica sempre abaixo do banner/hero. */
+.confirmation-section {
+  width: min(860px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 46px 0 72px;
+  box-sizing: border-box;
 }
 
-.event-meta span,
-.event-meta strong {
-  display: block;
-}
-
-.event-meta span {
-  margin-bottom: 4px;
-  color: rgba(255,255,255,.72);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
-.event-content {
+.confirmation-section.without-banner {
+  margin-top: -48px;
   position: relative;
   z-index: 2;
-  width: min(820px, calc(100% - 32px));
-  margin: -78px auto 0;
 }
 
-.event-content.has-receipt {
-  width: min(900px, calc(100% - 32px));
+.confirmation-section.has-banner {
+  margin-top: 0;
 }
 
-.event-content-heading {
-  margin-bottom: 18px;
-  padding: 0 8px;
+.confirmation-heading {
+  margin: 0 auto 26px;
   text-align: center;
 }
 
-.event-content-heading span {
+.confirmation-heading small {
+  display: block;
+  margin-bottom: 9px;
   color: var(--primary);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: .14em;
+  letter-spacing: 0.12em;
 }
 
-.event-content-heading h2 {
-  margin: 8px 0 7px;
-  font-size: 30px;
+.confirmation-heading h1 {
+  margin: 0 0 10px;
+  color: #17212b;
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 1.15;
 }
 
-.event-content-heading p {
-  max-width: 620px;
+.confirmation-heading p {
+  max-width: 650px;
   margin: 0 auto;
-  color: #677580;
-  line-height: 1.55;
+  color: #667085;
+  font-size: 15px;
+  line-height: 1.65;
 }
 
 .event-card {
-  padding: 34px;
-  border: 1px solid #e1e7ec;
+  padding: 36px;
+  border: 1px solid #e3e8ed;
   border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 24px 60px rgba(23,33,43,.13);
-}
-
-.has-receipt .event-card {
-  padding: 0;
-  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 22px 56px rgba(23, 33, 43, 0.12);
 }
 
 .event-card form {
   display: flex;
   flex-direction: column;
-  gap: 23px;
-}
-
-.event-card form > h2 {
-  display: none;
+  gap: 24px;
 }
 
 .identity {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  gap: 16px;
 }
 
 .event-card label {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .event-card input,
-.event-card textarea {
+.event-card textarea,
+.event-card select {
   width: 100%;
   box-sizing: border-box;
   padding: 13px 14px;
   border: 1px solid #ccd5dd;
   border-radius: 9px;
-  background: #fff;
+  background: #ffffff;
   color: #17212b;
   font: inherit;
 }
 
-.event-card input:focus,
-.event-card textarea:focus {
-  border-color: var(--primary);
-  outline: 3px solid color-mix(in srgb, var(--primary) 14%, transparent);
-}
-
 .event-card input[readonly] {
   background: #f4f6f8;
-  color: #53616c;
 }
 
 .event-card textarea {
-  min-height: 105px;
+  min-height: 110px;
   resize: vertical;
 }
 
@@ -210,27 +196,24 @@
 }
 
 .choice button {
-  min-height: 52px;
   padding: 14px;
   border: 1px solid #ccd5dd;
-  border-radius: 10px;
-  background: #fff;
-  color: #34404a;
+  border-radius: 9px;
+  background: #ffffff;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .choice button.on {
   border-color: var(--primary);
   background: var(--primary);
-  color: #fff;
+  color: #ffffff;
 }
 
 .event-card fieldset {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 0;
   padding: 18px;
   border: 1px solid #d8e0e7;
   border-radius: 12px;
@@ -238,7 +221,7 @@
 
 .event-card legend {
   padding: 0 8px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .event-card .date {
@@ -262,6 +245,7 @@
 }
 
 .participant-quantity {
+  margin: 0;
   padding: 18px;
   border: 1px solid #dce3e8;
   border-radius: 12px;
@@ -271,75 +255,58 @@
 .participant-quantity > span {
   display: block;
   margin-bottom: 12px;
-  font-weight: 800;
-}
-
-.participant-quantity > small {
-  display: block;
-  margin-top: 10px;
-  color: #667580;
-  line-height: 1.4;
+  font-weight: 700;
 }
 
 .quantity-control {
-  display: inline-grid;
-  grid-template-columns: 46px 66px 46px;
+  display: inline-flex;
   align-items: center;
-  overflow: hidden;
-  border: 1px solid #cbd4dc;
-  border-radius: 10px;
-  background: #fff;
+  gap: 18px;
 }
 
 .quantity-control button {
-  height: 46px;
-  border: 0;
-  background: #fff;
-  color: var(--primary);
+  width: 40px;
+  height: 40px;
+  border: 1px solid #ccd5dd;
+  border-radius: 8px;
+  background: #ffffff;
   cursor: pointer;
-  font-size: 24px;
-  font-weight: 800;
-}
-
-.quantity-control button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--primary) 8%, white);
-}
-
-.quantity-control button:disabled {
-  cursor: not-allowed;
-  opacity: .35;
+  font-size: 22px;
 }
 
 .quantity-control strong {
-  display: grid;
-  height: 46px;
-  place-items: center;
-  border-right: 1px solid #e0e6eb;
-  border-left: 1px solid #e0e6eb;
+  min-width: 30px;
+  text-align: center;
   font-size: 20px;
 }
 
+.participant-quantity small {
+  display: block;
+  margin-top: 10px;
+  color: #667085;
+}
+
 .submit {
-  min-height: 52px;
   padding: 15px 22px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--primary);
-  color: #fff;
+  color: #ffffff;
   cursor: pointer;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
-.submit:disabled { cursor: wait; opacity: .65; }
+.submit:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 
-.event-message {
-  padding: 34px 16px;
+.event-message,
+.success {
+  padding: 20px 4px;
   text-align: center;
 }
-
-.event-message h2 { margin-top: 0; }
-.event-message p { color: #677580; line-height: 1.6; }
 
 .error {
   padding: 12px 14px;
@@ -349,24 +316,58 @@
 }
 
 .event-footer {
-  padding: 68px 24px 30px;
+  padding: 18px 24px 30px;
   color: #697681;
   text-align: center;
 }
 
-@media (max-width: 700px) {
-  .event-header { height: 72px; }
-  .event-header-content,
-  .event-hero-content { width: min(100% - 28px, 1180px); }
-  .event-hero { min-height: 330px; padding: 48px 14px 105px; }
-  .event-hero h1 { font-size: 43px; }
-  .event-description { font-size: 16px; }
-  .event-meta { width: 100%; }
-  .event-meta > div { width: 100%; box-sizing: border-box; }
-  .event-content { margin-top: -66px; }
-  .event-card { padding: 23px 18px; border-radius: 15px; }
-  .has-receipt .event-card { padding: 0; }
+@media (max-width: 680px) {
+  .event-header {
+    height: 72px;
+  }
+
+  .event-header-content {
+    width: calc(100% - 32px);
+  }
+
+  .event-logo {
+    max-width: 150px;
+    max-height: 46px;
+  }
+
+  .event-hero {
+    min-height: 280px;
+    padding: 48px 20px 76px;
+  }
+
+  .event-hero h1 {
+    font-size: 40px;
+  }
+
+  .confirmation-section {
+    width: calc(100% - 24px);
+    padding: 34px 0 48px;
+  }
+
+  .confirmation-section.without-banner {
+    margin-top: -34px;
+  }
+
+  .confirmation-heading {
+    margin-bottom: 20px;
+  }
+
+  .confirmation-heading p {
+    font-size: 14px;
+  }
+
+  .event-card {
+    padding: 24px 18px;
+    border-radius: 14px;
+  }
+
   .identity,
-  .choice { grid-template-columns: 1fr; }
-  .event-content-heading h2 { font-size: 25px; }
+  .choice {
+    grid-template-columns: 1fr;
+  }
 }
