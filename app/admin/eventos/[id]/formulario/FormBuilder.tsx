@@ -93,20 +93,33 @@ export default function FormBuilder({ event }: Props) {
     setError("");
 
     try {
-      const response = await fetch("/api/eventos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...event,
-          formFields: fields,
-        }),
-      });
+      const response = await fetch(
+  `/api/eventos/${encodeURIComponent(event.id)}/formulario`,
+  {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      formFields: fields,
+    }),
+  }
+);
 
-      const result = await response.json().catch(() => ({}));
+const contentType = response.headers.get("content-type") || "";
 
-      if (!response.ok) {
-        throw new Error(result.error || "Não foi possível salvar o formulário.");
-      }
+const result = contentType.includes("application/json")
+  ? await response.json()
+  : {
+      error: await response.text(),
+    };
+
+if (!response.ok) {
+  throw new Error(
+    result.error ||
+      `Não foi possível salvar o formulário. HTTP ${response.status}`
+  );
+}
 
       setMessage("Formulário salvo com sucesso.");
       router.refresh();
