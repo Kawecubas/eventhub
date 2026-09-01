@@ -8,6 +8,7 @@ import type {
   EventGuest,
   EventItem,
 } from "@/lib/event-platform-store";
+import { getEventUiCopy, publicLocales, type PublicLocale } from "@/lib/public-i18n";
 
 type EventResponseProps = {
   event: EventItem;
@@ -40,12 +41,12 @@ function splitEventDateLabel(label: string) {
   };
 }
 
-function formatDateTime(value?: string) {
-  if (!value) return "Não informado";
+function formatDateTime(value: string | undefined, locale: PublicLocale, fallback: string) {
+  if (!value) return fallback;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
@@ -136,21 +137,24 @@ export default function EventResponse({
   guest,
   error,
 }: EventResponseProps) {
+  const [locale, setLocale] = useState<PublicLocale>(() => {
+    if (typeof navigator === "undefined") return "pt-BR";
+    const language = navigator.language.toLowerCase();
+    return language.startsWith("pt") ? "pt-BR" : language.startsWith("es") ? "es" : language.startsWith("it") ? "it" : "en";
+  });
+  const t = getEventUiCopy(locale);
+  const languagePicker = <label style={{ display: "block", textAlign: "right", marginBottom: 16 }}>{t.language}<select value={locale} onChange={(change) => setLocale(change.target.value as PublicLocale)} style={{ marginLeft: 8 }}><option value="pt-BR">PT-BR</option>{publicLocales.filter((item) => item !== "pt-BR").map((item) => <option key={item} value={item}>{item.toUpperCase()}</option>)}</select></label>;
   if (error || !guest) {
     return (
       <section className="event-message">
-        <h2>{error || "Convite não localizado."}</h2>
-        <p>
-          Abra o link individual recebido por e-mail ou solicite um
-          novo convite ao organizador.
-        </p>
+        {languagePicker}<h2>{error || t.invitationMissing}</h2><p>{t.invitationHint}</p>
       </section>
     );
   }
 
   if (guest.respondedAt) {
     return (
-      <ConfirmationReceipt
+      <>{languagePicker}<ConfirmationReceipt
         event={event}
         guest={guest}
         response={{
@@ -164,21 +168,27 @@ export default function EventResponse({
           formAnswers: guest.formAnswers || {},
           respondedAt: guest.respondedAt,
         }}
-      />
+        locale={locale}
+        t={t}
+      /></>
     );
   }
 
-  return <ResponseForm event={event} guest={guest} />;
+  return <>{languagePicker}<ResponseForm event={event} guest={guest} locale={locale} t={t} /></>;
 }
 
 function ConfirmationReceipt({
   event,
   guest,
   response,
+  locale,
+  t,
 }: {
   event: EventItem;
   guest: EventGuest;
   response: ReceiptData;
+  locale: PublicLocale;
+  t: ReturnType<typeof getEventUiCopy>;
 }) {
   const [qrCode, setQrCode] = useState("");
   const confirmed = response.status === "confirmed";
@@ -214,7 +224,7 @@ function ConfirmationReceipt({
     <section className="confirmation-receipt">
       <div className="receipt-print-actions no-print">
         <button type="button" onClick={() => window.print()}>
-          Imprimir / Salvar em PDF
+          {t.print}
         </button>
       </div>
 
@@ -243,69 +253,68 @@ function ConfirmationReceipt({
         >
           <span>{confirmed ? "✓" : "—"}</span>
           <div>
-            <small>COMPROVANTE DE RESPOSTA</small>
+            <small>{t.receipt}</small>
             <h2>
               {confirmed
-                ? "Participação confirmada"
-                : "Ausência registrada"}
+                ? t.confirmed
+                : t.declined}
             </h2>
           </div>
         </div>
       </div>
 
       <p className="receipt-intro">
-        Olá, <strong>{guest.name}</strong>. Sua resposta para o
-        evento <strong>{event.name}</strong> foi registrada.
+        {t.greeting}, <strong>{guest.name}</strong>. {t.responseSaved} <strong>{event.name}</strong>.
       </p>
 
       <div className="receipt-content">
         <div className="receipt-details">
           <div>
-            <span>Evento</span>
+            <span>{t.event}</span>
             <strong>{event.name}</strong>
           </div>
 
           <div>
-            <span>Convidado</span>
+            <span>{t.guest}</span>
             <strong>{guest.name}</strong>
           </div>
 
           {guest.company && (
             <div>
-              <span>Empresa</span>
+              <span>{t.company}</span>
               <strong>{guest.company}</strong>
             </div>
           )}
 
           {confirmed && response.selectedDate && (
             <div>
-              <span>Data escolhida</span>
+              <span>{t.selectedDate}</span>
               <strong>{response.selectedDate}</strong>
             </div>
           )}
 
           {confirmed && (
             <div>
-              <span>Participantes</span>
+              <span>{t.participants}</span>
               <strong>{response.participants || 1}</strong>
             </div>
           )}
 
           {event.location && (
             <div>
-              <span>Local</span>
+              <span>{t.location}</span>
               <strong>{event.location}</strong>
             </div>
           )}
 
           <div>
-            <span>Respondido em</span>
-            <strong>{formatDateTime(response.respondedAt)}</strong>
+            <span>{t.answeredAt}</span>
+            <strong>{formatDateTime(response.respondedAt, locale, t.notProvided)}</strong>
           </div>
 
           {response.notes && (
             <div className="receipt-notes">
-              <span>Observações</span>
+              <span>{t.notes}</span>
               <strong>{response.notes}</strong>
             </div>
           )}
@@ -315,7 +324,7 @@ function ConfirmationReceipt({
               <span>{field.label}</span>
               <strong>
                 {response.formAnswers?.[field.id] === true
-                  ? "Sim"
+                  ? t.yes
                   : String(response.formAnswers?.[field.id] ?? "")}
               </strong>
             </div>
@@ -324,24 +333,21 @@ function ConfirmationReceipt({
 
         <aside className="receipt-qr">
           {qrCode ? (
-            <img src={qrCode} alt="QR Code do convite" />
+            <img src={qrCode} alt={t.checkinQr} />
           ) : (
             <div className="qr-placeholder">
-              Gerando QR Code...
+              {t.generatingQr}
             </div>
           )}
-          <strong>{guest.checkinToken ? "QR Code de check-in" : "Convite individual"}</strong>
-          <span>Apresente este QR Code quando solicitado.</span>
+          <strong>{guest.checkinToken ? t.checkinQr : t.invitationQr}</strong>
+          <span>{t.qrHint}</span>
         </aside>
       </div>
 
       {confirmed && (
         <div className="calendar-actions">
           <div>
-            <strong>Adicione o evento à sua agenda</strong>
-            <span>
-              Disponível quando a data possui dia, mês e ano.
-            </span>
+            <strong>{t.calendar}</strong><span>{t.calendarHint}</span>
           </div>
 
           {links ? (
@@ -351,7 +357,7 @@ function ConfirmationReceipt({
                 target="_blank"
                 rel="noreferrer"
               >
-                Google Agenda
+                {t.google}
               </a>
               <a
                 href={links.outlook}
@@ -363,15 +369,14 @@ function ConfirmationReceipt({
             </div>
           ) : (
             <span className="calendar-warning">
-              Cadastre a data no padrão DD/MM/AAAA.
+              {t.dateFormat}
             </span>
           )}
         </div>
       )}
 
       <p className="response-note">
-        Para alterar a resposta, entre em contato com o
-        organizador.
+        {t.changeHint}
       </p>
     </section>
   );
@@ -380,9 +385,13 @@ function ConfirmationReceipt({
 function ResponseForm({
   event,
   guest,
+  locale,
+  t,
 }: {
   event: EventItem;
   guest: EventGuest;
+  locale: PublicLocale;
+  t: ReturnType<typeof getEventUiCopy>;
 }) {
   const [status, setStatus] = useState<
     "confirmed" | "declined"
@@ -454,29 +463,29 @@ function ResponseForm({
       if (!field.required) continue;
 
       if (field.type === "event_dates" && !selectedDate) {
-        return `Preencha o campo “${field.label}”.`;
+        return t.requiredField.replace("{field}", field.label);
       }
 
       if (field.type === "participants" && participants < 1) {
-        return `Preencha o campo “${field.label}”.`;
+        return t.requiredField.replace("{field}", field.label);
       }
 
       if (field.type === "notes" && !notes.trim()) {
-        return `Preencha o campo “${field.label}”.`;
+        return t.requiredField.replace("{field}", field.label);
       }
 
       if (
         ["short_text", "long_text", "select"].includes(field.type) &&
         !String(answers[field.id] ?? "").trim()
       ) {
-        return `Preencha o campo “${field.label}”.`;
+        return t.requiredField.replace("{field}", field.label);
       }
 
       if (
         field.type === "checkbox" &&
         answers[field.id] !== true
       ) {
-        return `Marque o campo “${field.label}”.`;
+        return t.requiredCheck.replace("{field}", field.label);
       }
     }
 
@@ -512,6 +521,7 @@ function ResponseForm({
             notes,
             participants:
               status === "confirmed" ? participants : 1,
+            locale,
             formAnswers: answers,
           }),
         }
@@ -522,7 +532,7 @@ function ResponseForm({
       if (!response.ok) {
         setSubmitError(
           result?.error ||
-            "Não foi possível registrar sua resposta."
+            t.submitError
         );
         return;
       }
@@ -538,7 +548,7 @@ function ResponseForm({
         respondedAt: new Date().toISOString(),
       });
     } catch {
-      setSubmitError("Não foi possível conectar ao servidor.");
+      setSubmitError(t.networkError);
     } finally {
       setLoading(false);
     }
@@ -659,7 +669,7 @@ function ResponseForm({
               +
             </button>
           </div>
-          <small>Máximo de {maximum} pessoas por convite.</small>
+          <small>{t.maxPeople.replace("{count}", String(maximum))}</small>
         </div>
       );
     }
@@ -742,7 +752,7 @@ function ResponseForm({
             }
           >
             <option value="">
-              {field.placeholder || "Selecione"}
+              {field.placeholder || t.select}
             </option>
             {(field.options || []).map((option) => (
               <option key={option} value={option}>
@@ -780,6 +790,8 @@ function ResponseForm({
         event={event}
         guest={guest}
         response={receipt}
+        locale={locale}
+        t={t}
       />
     );
   }
@@ -788,11 +800,11 @@ function ResponseForm({
     <form onSubmit={submit}>
       <div className="identity">
         <label>
-          Convidado
+          {t.attendee}
           <input readOnly value={guest.name} />
         </label>
         <label>
-          Empresa
+          {t.company}
           <input readOnly value={guest.company || ""} />
         </label>
       </div>
@@ -803,7 +815,7 @@ function ResponseForm({
           className={status === "confirmed" ? "on" : ""}
           onClick={() => setStatus("confirmed")}
         >
-          Quero participar
+          {t.attend}
         </button>
         <button
           type="button"
@@ -813,7 +825,7 @@ function ResponseForm({
             setSelectedDate("");
           }}
         >
-          Não poderei participar
+          {t.cannotAttend}
         </button>
       </div>
 
@@ -832,7 +844,7 @@ function ResponseForm({
         type="submit"
         disabled={loading}
       >
-        {loading ? "Enviando..." : "Enviar resposta"}
+        {loading ? t.sending : t.submit}
       </button>
     </form>
   );

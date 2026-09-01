@@ -614,6 +614,7 @@ export async function respond(
     selectedDate?: string;
     notes?: string;
     participants?: number;
+    locale?: "pt-BR" | "en" | "es" | "it";
     formAnswers?: Record<string, string | boolean | number>;
   }
 ): Promise<EventGuest | null> {
@@ -675,6 +676,7 @@ export async function respond(
   }
 
   guest.status = input.status;
+  if (input.locale) guest.locale = input.locale;
   if (input.status === "confirmed" && !guest.checkinToken) {
     guest.checkinToken = crypto.randomBytes(16).toString("hex");
   }
