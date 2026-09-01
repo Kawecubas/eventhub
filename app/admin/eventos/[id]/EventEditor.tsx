@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import type { EventItem } from "@/lib/event-platform-store";
 import GuestImporter from "./GuestImporter";
+import GenerateGenericLinkButton from "@/components/GenerateGenericLinkButton";
 import "./editor.css";
 
 const empty = {
@@ -68,11 +69,12 @@ export default function EventEditor({
     formEvent.preventDefault();
     setGuestError("");
 
-    const form = new FormData(formEvent.currentTarget);
+    const formElement = formEvent.currentTarget;
+    const formData = new FormData(formElement);
     const response = await fetch(`/api/eventos/${event.id}/convidados`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(form)),
+      body: JSON.stringify(Object.fromEntries(formData)),
     });
     const result = await response.json().catch(() => ({}));
 
@@ -82,7 +84,7 @@ export default function EventEditor({
     }
 
     setEvent({ ...event, guests: [result, ...event.guests] });
-    formEvent.currentTarget.reset();
+    formElement.reset();
   }
 
   async function deleteGuest(guestId: string, guestName: string) {
@@ -213,6 +215,13 @@ export default function EventEditor({
               <option value="closed">Encerrado</option>
             </select>
           </label>
+          {event.id && (
+            <div style={{ marginTop: 20 }}>
+              <strong>Link público para divulgação</strong>
+              <p>Permite inscrições sem convite individual.</p>
+              <GenerateGenericLinkButton eventId={event.id} />
+            </div>
+          )}
         </section>
       )}
 

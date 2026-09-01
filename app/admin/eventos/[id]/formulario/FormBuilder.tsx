@@ -96,7 +96,7 @@ export default function FormBuilder({ event }: Props) {
       const response = await fetch(
   `/api/eventos/${encodeURIComponent(event.id)}/formulario`,
   {
-    method: "PATCH",
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },

@@ -24,6 +24,22 @@ type ReceiptData = {
   respondedAt: string;
 };
 
+function splitEventDateLabel(label: string) {
+  const normalized = String(label).replace(/\s+/g, " ").trim();
+  const match = normalized.match(
+    /^(\d{1,2}[\\/.-]\d{1,2}[\\/.-]\d{4})\s*(?:[-–—|:]\s*)?(.+)$/
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    date: match[1],
+    time: match[2].trim() || "Horário não informado",
+  };
+}
+
 function formatDateTime(value?: string) {
   if (!value) return "Não informado";
   const date = new Date(value);
@@ -176,7 +192,7 @@ function ConfirmationReceipt({
   );
 
   useEffect(() => {
-    QRCode.toDataURL(window.location.href, {
+    QRCode.toDataURL(guest.checkinToken || window.location.href, {
       width: 240,
       margin: 1,
       errorCorrectionLevel: "M",
@@ -314,7 +330,7 @@ function ConfirmationReceipt({
               Gerando QR Code...
             </div>
           )}
-          <strong>Convite individual</strong>
+          <strong>{guest.checkinToken ? "QR Code de check-in" : "Convite individual"}</strong>
           <span>Apresente este QR Code quando solicitado.</span>
         </aside>
       </div>
@@ -391,6 +407,38 @@ function ResponseForm({
   const fields = (event.formFields || []).filter(
     (field) => field.visible !== false
   );
+
+  const groupedEventDates = useMemo(() => {
+    const groups = new Map<
+      string,
+      Array<{ id: string; label: string; time: string }>
+    >();
+
+    for (const eventDate of event.dates) {
+      const parsed = splitEventDateLabel(eventDate.label);
+      if (!parsed) continue;
+
+      const current = groups.get(parsed.date) || [];
+      current.push({
+        id: eventDate.id,
+        label: eventDate.label,
+        time: parsed.time,
+      });
+      groups.set(parsed.date, current);
+    }
+
+    return Array.from(groups.entries()).map(([date, options]) => ({
+      date,
+      options,
+    }));
+  }, [event.dates]);
+
+  const shouldGroupEventDates =
+    event.dates.length > 0 &&
+    groupedEventDates.reduce(
+      (total, group) => total + group.options.length,
+      0
+    ) === event.dates.length;
 
   function answer(fieldId: string, value: string | boolean | number) {
     setAnswers((current) => ({
@@ -520,26 +568,54 @@ function ResponseForm({
               {field.description}
             </p>
           )}
-          {event.dates.map((eventDate) => (
-            <label
-              key={eventDate.id}
-              className={
-                selectedDate === eventDate.label
-                  ? "date on"
-                  : "date"
-              }
-            >
-              <input
-                type="radio"
-                name={`date-${field.id}`}
-                checked={selectedDate === eventDate.label}
-                onChange={() =>
-                  setSelectedDate(eventDate.label)
+          {shouldGroupEventDates ? (
+            <div className="date-groups">
+              {groupedEventDates.map((group) => (
+                <section className="date-group" key={group.date}>
+                  <h4 className="date-group-title">{group.date}</h4>
+                  <div className="date-options">
+                    {group.options.map((eventDate) => (
+                      <label
+                        key={eventDate.id}
+                        className={
+                          selectedDate === eventDate.label
+                            ? "date on"
+                            : "date"
+                        }
+                      >
+                        <input
+                          type="radio"
+                          name={`date-${field.id}`}
+                          checked={selectedDate === eventDate.label}
+                          onChange={() =>
+                            setSelectedDate(eventDate.label)
+                          }
+                        />
+                        <span>{eventDate.time}</span>
+                      </label>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            event.dates.map((eventDate) => (
+              <label
+                key={eventDate.id}
+                className={
+                  selectedDate === eventDate.label ? "date on" : "date"
                 }
-              />
-              {eventDate.label}
-            </label>
-          ))}
+              >
+                <input
+                  type="radio"
+                  name={`date-${field.id}`}
+                  checked={selectedDate === eventDate.label}
+                  onChange={() => setSelectedDate(eventDate.label)}
+                />
+                {eventDate.label}
+              </label>
+            ))
+          )}
         </fieldset>
       );
     }

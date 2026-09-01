@@ -41,12 +41,14 @@
   background: #ffffff;
 }
 
-.event-banner img {
+.event-banner img,
+.receipt-banner img {
   display: block;
   width: 100%;
   max-width: 100%;
-  height: auto;
-  object-fit: contain;
+  height: 400px;
+  max-height: none;
+  object-fit: cover;
   object-position: center;
 }
 
@@ -224,13 +226,47 @@
   font-weight: 700;
 }
 
+.date-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.date-group {
+  display: grid;
+  grid-template-columns: minmax(112px, 150px) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #e3e8ed;
+  border-radius: 10px;
+  background: #f8fafb;
+}
+
+.date-group-title {
+  margin: 0;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.date-options {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .event-card .date {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 14px;
+  width: auto;
+  padding: 8px 10px;
   border: 1px solid #d8e0e7;
   border-radius: 9px;
+  background: #ffffff;
   cursor: pointer;
 }
 
@@ -369,5 +405,20 @@
   .identity,
   .choice {
     grid-template-columns: 1fr;
+  }
+
+  .date-group {
+    grid-template-columns: minmax(96px, 118px) minmax(0, 1fr);
+    gap: 8px;
+    padding: 7px 8px;
+  }
+
+  .date-group-title {
+    font-size: 13px;
+  }
+
+  .event-card .date {
+    padding: 7px 8px;
+    font-size: 13px;
   }
 }

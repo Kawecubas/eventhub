@@ -15,7 +15,7 @@ type RouteContext = {
   }>;
 };
 
-export async function PATCH(
+async function saveForm(
   request: Request,
   { params }: RouteContext
 ) {
@@ -69,5 +69,19 @@ export async function PATCH(
       },
       { status: 500 }
     );
-  }
+    }
+}
+
+export async function PATCH(
+  request: Request,
+  context: RouteContext
+) {
+  return saveForm(request, context);
+}
+
+export async function POST(
+  request: Request,
+  context: RouteContext
+) {
+  return saveForm(request, context);
 }

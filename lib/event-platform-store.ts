@@ -44,6 +44,11 @@ export type EventGuest = {
   sentAt?: string;
   respondedAt?: string;
   createdAt: string;
+  source?: "invite" | "public_link";
+  locale?: "pt-BR" | "en" | "es" | "it";
+  checkinToken?: string;
+  checkedIn?: boolean;
+  checkedInAt?: string;
 };
 
 export type EventItem = {
@@ -67,6 +72,7 @@ export type EventItem = {
   guests: EventGuest[];
   createdAt: string;
   updatedAt: string;
+  publicRegistrationEnabled?: boolean;
 };
 
 export type GuestImportInput = {
@@ -296,10 +302,27 @@ function normalizeEvent(value: unknown): EventItem {
             ? String(guest.respondedAt)
             : undefined,
           createdAt: String(guest.createdAt ?? now),
+          source:
+            guest.source === "public_link" || guest.source === "invite"
+              ? guest.source
+              : undefined,
+          locale:
+            guest.locale === "en" || guest.locale === "es" || guest.locale === "it" || guest.locale === "pt-BR"
+              ? guest.locale
+              : undefined,
+          checkinToken: guest.checkinToken
+            ? String(guest.checkinToken)
+            : undefined,
+          checkedIn: Boolean(guest.checkedIn),
+          checkedInAt: guest.checkedInAt
+            ? String(guest.checkedInAt)
+            : undefined,
         }))
       : [],
     createdAt: String(source.createdAt ?? now),
     updatedAt: String(source.updatedAt ?? now),
+    publicRegistrationEnabled:
+      source.publicRegistrationEnabled === false ? false : true,
   };
 }
 
@@ -420,6 +443,7 @@ export async function saveEvent(
     guests: [],
     createdAt: now,
     updatedAt: now,
+    publicRegistrationEnabled: true,
   };
 
   const event: EventItem = normalizeEvent({
@@ -598,13 +622,14 @@ export async function respond(
     (item) => item.token.trim() === String(token ?? "").trim()
   );
 
-if (!event || !guest) {
-  return null;
-}
+  if (!event || !guest) {
+    return null;
+  }
 
-if (guest.respondedAt) {
-  throw new Error("Este convite já foi respondido.");
-}
+  if (guest.respondedAt) {
+    throw new Error("Este convite já foi respondido.");
+  }
+
   if (input.status === "confirmed") {
     const selectedDate = String(input.selectedDate ?? "").trim();
     const participants = Math.min(
@@ -650,6 +675,9 @@ if (guest.respondedAt) {
   }
 
   guest.status = input.status;
+  if (input.status === "confirmed" && !guest.checkinToken) {
+    guest.checkinToken = crypto.randomBytes(16).toString("hex");
+  }
   guest.notes = String(input.notes ?? "").trim();
   guest.formAnswers =
     input.formAnswers && typeof input.formAnswers === "object"
@@ -819,4 +847,179 @@ export async function importBackup(
   }
 
   return { imported };
+}
+
+/**
+ * Cria um convidado a partir do link público (sem convite prévio).
+ * Usado quando alguém clica no link compartilhado em redes sociais.
+ */
+export async function registerPublicGuest(
+  slugOrId: string,
+  input: {
+    name: string;
+    company?: string;
+    email: string;
+    phone?: string;
+    selectedDate?: string;
+    participants?: number;
+    notes?: string;
+    locale?: "pt-BR" | "en" | "es" | "it";
+    formAnswers?: Record<string, string | boolean | number>;
+  }
+): Promise<{ event: EventItem; guest: EventGuest } | null> {
+  const event = await getEvent(slugOrId);
+  if (!event) return null;
+
+  if (event.publicRegistrationEnabled === false) {
+    throw new Error(
+      "As inscrições públicas para este evento estão desativadas."
+    );
+  }
+
+  if (event.status === "closed") {
+    throw new Error("As inscrições para este evento estão encerradas.");
+  }
+
+  const name = String(input.name ?? "").trim();
+  const email = String(input.email ?? "").trim().toLowerCase();
+
+  if (!name) {
+    throw new Error("Nome é obrigatório.");
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("E-mail inválido.");
+  }
+
+  // Recarrega o evento mais recente para evitar condição de corrida
+  const latestEvent = await getEvent(event.id);
+  if (!latestEvent) return null;
+
+  const existing = latestEvent.guests.find(
+    (guest) => guest.email.trim().toLowerCase() === email
+  );
+
+  if (existing) {
+    // Se já existe (ex: reenviou o formulário), retorna o mesmo registro
+    // ao invés de duplicar — evita QR Codes conflitantes.
+    return { event: latestEvent, guest: existing };
+  }
+
+  let selectedDate: string | undefined;
+  const participants = Math.min(
+    10,
+    Math.max(1, Math.floor(Number(input.participants) || 1))
+  );
+
+  if (input.selectedDate) {
+    selectedDate = String(input.selectedDate).trim();
+    const eventDate = latestEvent.dates.find(
+      (date) => date.label === selectedDate
+    );
+
+    if (!eventDate) {
+      throw new Error("A data selecionada não pertence ao evento.");
+    }
+
+    if (typeof eventDate.capacity === "number") {
+      const occupied = latestEvent.guests
+        .filter(
+          (item) =>
+            item.status === "confirmed" && item.selectedDate === selectedDate
+        )
+        .reduce((sum, item) => sum + (item.participants || 1), 0);
+
+      if (occupied + participants > eventDate.capacity) {
+        throw new Error(
+          `Vagas esgotadas para esta data. Restam ${Math.max(
+            eventDate.capacity - occupied,
+            0
+          )} vaga(s).`
+        );
+      }
+    }
+  }
+
+  const now = new Date().toISOString();
+
+  const guest: EventGuest = {
+    id: crypto.randomUUID(),
+    token: crypto.randomBytes(32).toString("hex"),
+    checkinToken: crypto.randomBytes(16).toString("hex"),
+    name,
+    company: String(input.company ?? "").trim(),
+    email,
+    phone: String(input.phone ?? "").trim() || undefined,
+    status: "confirmed",
+    selectedDate,
+    participants,
+    notes: String(input.notes ?? "").trim() || undefined,
+    formAnswers:
+      input.formAnswers && typeof input.formAnswers === "object"
+        ? input.formAnswers
+        : {},
+    source: "public_link",
+    locale: input.locale,
+    respondedAt: now,
+    checkedIn: false,
+    createdAt: now,
+  };
+
+  latestEvent.guests.unshift(guest);
+  latestEvent.updatedAt = now;
+
+  await persistEvent(latestEvent);
+
+  return { event: latestEvent, guest };
+}
+
+/**
+ * Confirma a presença física do convidado via leitura de QR Code.
+ */
+export async function checkinGuestByToken(
+  eventId: string,
+  checkinToken: string
+): Promise<{ guest: EventGuest; alreadyCheckedIn: boolean } | null> {
+  const event = await getEvent(eventId);
+  if (!event) return null;
+
+  const normalizedToken = String(checkinToken ?? "").trim();
+
+  const guest = event.guests.find(
+    (item) => String(item.checkinToken ?? "").trim() === normalizedToken
+  );
+
+  if (!guest) return null;
+
+  if (guest.checkedIn) {
+    return { guest, alreadyCheckedIn: true };
+  }
+
+  guest.checkedIn = true;
+  guest.checkedInAt = new Date().toISOString();
+  event.updatedAt = guest.checkedInAt;
+
+  await persistEvent(event);
+
+  return { guest, alreadyCheckedIn: false };
+}
+
+/**
+ * Busca um convidado pelo checkinToken, sem alterar o status.
+ * Útil para o scanner mostrar os dados antes de confirmar.
+ */
+export async function findGuestByCheckinToken(
+  eventId: string,
+  checkinToken: string
+): Promise<EventGuest | null> {
+  const event = await getEvent(eventId);
+  if (!event) return null;
+
+  const normalizedToken = String(checkinToken ?? "").trim();
+
+  return (
+    event.guests.find(
+      (item) => String(item.checkinToken ?? "").trim() === normalizedToken
+    ) ?? null
+  );
 }
