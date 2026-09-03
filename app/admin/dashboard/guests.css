@@ -1,0 +1,73 @@
+.dashboard-guests {
+  margin-top: 20px;
+}
+
+.dashboard-table-title > strong {
+  color: #687784;
+  font-size: 13px;
+}
+
+.dashboard-guest-table-wrap {
+  overflow: auto;
+}
+
+.dashboard-guest-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.dashboard-guest-table th,
+.dashboard-guest-table td {
+  padding: 14px 12px;
+  border-top: 1px solid #edf0f3;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.dashboard-guest-table th {
+  color: #687784;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.dashboard-guest-table td:first-child,
+.dashboard-guest-table th:first-child {
+  padding-left: 0;
+}
+
+.dashboard-guest-table td strong,
+.dashboard-guest-table td small {
+  display: block;
+}
+
+.dashboard-guest-table td small {
+  margin-top: 4px;
+  color: #71808c;
+  font-size: 12px;
+}
+
+.dashboard-guest-table a {
+  color: #175b8c;
+  font-weight: 700;
+}
+
+.dashboard-guest-status {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #fff4dc;
+  color: #9a6200;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dashboard-guest-status.confirmed {
+  background: #e9f8ef;
+  color: #167044;
+}
+
+.dashboard-guest-status.declined {
+  background: #fff0f0;
+  color: #ad3030;
+}
