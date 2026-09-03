@@ -139,13 +139,23 @@ export default function EventEditor({
     }
   }
 
-  async function send(ids: string[]) {
+  async function send(ids: string[], resend = false) {
     const response = await fetch(`/api/eventos/${event.id}/enviar`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ guestIds: ids }),
+      body: JSON.stringify({ guestIds: ids, resend }),
     });
     const data = await response.json();
+    if (response.ok && data.sentGuestIds?.length) {
+      const sentIds = new Set(data.sentGuestIds);
+      const sentAt = new Date().toISOString();
+      setEvent({
+        ...event,
+        guests: event.guests.map((guest: any) =>
+          sentIds.has(guest.id) ? { ...guest, sentAt } : guest
+        ),
+      });
+    }
     alert(data.message || data.error);
   }
 
@@ -406,8 +416,9 @@ export default function EventEditor({
                     <tr>
                       <th>Nome</th>
                       <th>Status</th>
+                      <th>Origem</th>
                       <th>Data</th>
-                      <th>Convite</th>
+                      <th>E-mail</th>
                       <th>Link</th>
                       <th>Ações</th>
                     </tr>
@@ -422,9 +433,28 @@ export default function EventEditor({
                             {guest.company ? ` · ${guest.company}` : ""}
                           </small>
                         </td>
-                        <td>{guest.status}</td>
+                        <td>
+                          <span className={`guest-status ${guest.status}`}>
+                            {guest.status === "confirmed"
+                              ? "Confirmado"
+                              : guest.status === "declined"
+                                ? "Recusado"
+                                : "Pendente"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`guest-source ${guest.source || "invite"}`}>
+                            {guest.source === "public_link"
+                              ? "Link público"
+                              : "Convite"}
+                          </span>
+                        </td>
                         <td>{guest.selectedDate || "—"}</td>
-                        <td>{guest.sentAt ? "Enviado" : "Não enviado"}</td>
+                        <td>
+                          <span className={guest.sentAt ? "email-sent" : "email-not-sent"}>
+                            {guest.sentAt ? "E-mail enviado" : "Não enviado"}
+                          </span>
+                        </td>
                         <td>
                           <button
                             type="button"
@@ -437,6 +467,12 @@ export default function EventEditor({
                             }
                           >
                             Copiar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => send([guest.id], true)}
+                          >
+                            Reenviar e-mail
                           </button>
                         </td>
                         <td>

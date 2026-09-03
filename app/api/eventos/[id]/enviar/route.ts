@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { getCompanySettings } from "@/lib/company-settings";
+import { sendCheckinEmail } from "@/lib/email-checkin";
 import { sendEmail } from "@/lib/email-service";
 import { getEvent, markSent } from "@/lib/event-platform-store";
 import { publicEventUrl } from "@/lib/public-event-url";
@@ -28,7 +29,10 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   const { id } = await params;
-  const { guestIds = [] } = (await request.json()) as { guestIds?: string[] };
+  const { guestIds = [], resend = false } = (await request.json()) as {
+    guestIds?: string[];
+    resend?: boolean;
+  };
   const event = await getEvent(id);
 
   if (!event) {
@@ -39,9 +43,10 @@ export async function POST(request: Request, { params }: RouteContext) {
   const selectedGuests = event.guests.filter(
     (guest) =>
       guestIds.includes(guest.id) &&
-      guest.status === "pending" &&
-      !guest.sentAt &&
-      guest.source !== "public_link"
+      (resend ||
+        (guest.status === "pending" &&
+          !guest.sentAt &&
+          guest.source !== "public_link"))
   );
 
   let sent = 0;
@@ -50,6 +55,13 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   for (const guest of selectedGuests) {
     try {
+      if (resend && guest.status === "confirmed" && guest.checkinToken) {
+        await sendCheckinEmail(event, guest);
+        successfullySent.push(guest.id);
+        sent += 1;
+        continue;
+      }
+
       const link = publicEventUrl(
         `/eventos/${event.slug}?token=${encodeURIComponent(guest.token)}`
       );
@@ -92,6 +104,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     sent,
     failed: failed.length,
     failures: failed,
+    sentGuestIds: successfullySent,
     message: `${sent} convite(s) enviado(s) e ${failed.length} falha(s).`,
   });
 }

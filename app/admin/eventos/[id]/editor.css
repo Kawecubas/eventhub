@@ -465,6 +465,46 @@
   background: #107146;
 }
 
+.guest-status,
+.guest-source,
+.email-sent,
+.email-not-sent {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.guest-status.pending {
+  background: #fff4dc;
+  color: #9a6200;
+}
+
+.guest-status.confirmed,
+.email-sent {
+  background: #e9f8ef;
+  color: #167044;
+}
+
+.guest-status.declined {
+  background: #fff0f0;
+  color: #ad3030;
+}
+
+.guest-source.public_link {
+  background: #e8f2fb;
+  color: #185b93;
+}
+
+.guest-source.invite,
+.email-not-sent {
+  background: #eef1f4;
+  color: #586675;
+}
+
 @media (max-width: 700px) {
   .dashboard-heading-actions {
     align-items: flex-start;

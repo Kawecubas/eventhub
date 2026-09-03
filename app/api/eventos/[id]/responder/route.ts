@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEvent, respond } from "@/lib/event-platform-store";
+import { getEvent, markSent, respond } from "@/lib/event-platform-store";
 import { sendCheckinEmail } from "@/lib/email-checkin";
 
 type RouteContext = {
@@ -24,6 +24,7 @@ export async function POST(
       if (event) {
         try {
           await sendCheckinEmail(event, guest);
+          await markSent(event.id, [guest.id]);
         } catch (emailError) {
           console.error("[RESPOSTA] Falha ao enviar confirmação:", emailError);
         }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { registerPublicGuest } from "@/lib/event-platform-store";
+import { markSent, registerPublicGuest } from "@/lib/event-platform-store";
 import { sendCheckinEmail } from "@/lib/email-checkin";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     try {
       await sendCheckinEmail(result.event, result.guest);
+      await markSent(result.event.id, [result.guest.id]);
     } catch (emailError) {
       // Não falha a inscrição se o e-mail falhar — apenas loga.
       console.error("[INSCRICAO PUBLICA] Falha ao enviar e-mail:", emailError);

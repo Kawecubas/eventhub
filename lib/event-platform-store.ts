@@ -533,6 +533,7 @@ export async function addGuest(
     email,
     phone: String(input.phone ?? "").trim() || undefined,
     status: "pending",
+    source: "invite",
     createdAt: new Date().toISOString(),
   };
 
@@ -825,6 +826,7 @@ export async function importGuests(
       email,
       phone: phone || undefined,
       status: "pending",
+      source: "invite",
       createdAt: now,
     };
 
