@@ -36,8 +36,12 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   const settings = await getCompanySettings();
-  const selectedGuests = event.guests.filter((guest) =>
-    guestIds.includes(guest.id)
+  const selectedGuests = event.guests.filter(
+    (guest) =>
+      guestIds.includes(guest.id) &&
+      guest.status === "pending" &&
+      !guest.sentAt &&
+      guest.source !== "public_link"
   );
 
   let sent = 0;

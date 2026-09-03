@@ -49,6 +49,14 @@ export default function EventEditor({
   const tab = initialTab;
   const [guestError, setGuestError] = useState("");
   const [deletingGuestId, setDeletingGuestId] = useState("");
+  const pendingGuestIds = event.guests
+    .filter(
+      (guest: any) =>
+        guest.status === "pending" &&
+        !guest.sentAt &&
+        guest.source !== "public_link"
+    )
+    .map((guest: any) => guest.id);
 
   async function file(field: string, selected?: File) {
     if (!selected) return;
@@ -381,15 +389,10 @@ export default function EventEditor({
                   </a>
                   <button
                     type="button"
-                    onClick={() =>
-                      send(
-                        event.guests
-                          .filter((guest: any) => guest.status === "pending")
-                          .map((guest: any) => guest.id)
-                      )
-                    }
+                    disabled={pendingGuestIds.length === 0}
+                    onClick={() => send(pendingGuestIds)}
                   >
-                    Enviar para pendentes
+                    Enviar para pendentes ({pendingGuestIds.length})
                   </button>
                 </div>
                 <span>{event.guests.length} convidados cadastrados</span>
