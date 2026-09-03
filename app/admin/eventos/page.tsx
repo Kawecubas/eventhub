@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin-auth";
 import { listEvents } from "@/lib/event-platform-store";
+import { publicLocaleLabels } from "@/lib/public-i18n";
 import "./style.css";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,9 @@ export default async function Page() {
               </div>
               <div className="body">
                 <span className={`status ${event.status}`}>{event.status}</span>
+                <span className="event-language">
+                  Idioma: {publicLocaleLabels[event.defaultLocale]}
+                </span>
                 <h2>{event.name}</h2>
                 <p>{event.location || "Local não definido"}</p>
                 <div className="stats">
