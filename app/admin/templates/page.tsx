@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { listSystemEmailTemplates } from "@/lib/email-template-store";
+import { publicLocaleLabels } from "@/lib/public-i18n";
 
 import "./templates.css";
 
@@ -46,6 +47,7 @@ export default async function TemplatesPage() {
           <article className="template-card" key={template.id}>
             <div className="template-card-top">
               <span>{labels[template.type] || template.type}</span>
+              <span>{publicLocaleLabels[template.locale]}</span>
               <b className={template.active ? "active" : "inactive"}>
                 {template.active ? "Ativo" : "Inativo"}
               </b>

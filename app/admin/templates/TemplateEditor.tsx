@@ -7,6 +7,11 @@ import type {
   SystemEmailTemplate,
   SystemEmailTemplateType,
 } from "@/lib/email-template-store";
+import {
+  publicLocaleLabels,
+  publicLocales,
+  type PublicLocale,
+} from "@/lib/public-i18n";
 
 type Props = {
   initial?: SystemEmailTemplate | null;
@@ -60,6 +65,9 @@ export default function TemplateEditor({ initial }: Props) {
     initial?.subject || "Convite: {{evento}}"
   );
   const [html, setHtml] = useState(initial?.html || DEFAULT_HTML);
+  const [locale, setLocale] = useState<PublicLocale>(
+    initial?.locale || "pt-BR"
+  );
   const [active, setActive] = useState(initial?.active !== false);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">(
     "desktop"
@@ -106,6 +114,7 @@ export default function TemplateEditor({ initial }: Props) {
           type,
           subject,
           html,
+          locale,
           active,
         }),
       });
@@ -188,6 +197,20 @@ export default function TemplateEditor({ initial }: Props) {
             />
           </label>
 
+          <label>
+            Idioma do template
+            <select
+              value={locale}
+              onChange={(event) => setLocale(event.target.value as PublicLocale)}
+            >
+              {publicLocales.map((item) => (
+                <option key={item} value={item}>
+                  {publicLocaleLabels[item]}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <div className="template-variables">
             <span>Inserir variável</span>
 
@@ -197,7 +220,10 @@ export default function TemplateEditor({ initial }: Props) {
               "{{evento}}",
               "{{data}}",
               "{{local}}",
+              "{{participantes}}",
               "{{link}}",
+              "{{qr_code}}",
+              "{{codigo_checkin}}",
             ].map((variable) => (
               <button
                 type="button"

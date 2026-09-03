@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { neon } from "@neondatabase/serverless";
+import { publicLocales, type PublicLocale } from "@/lib/public-i18n";
 
 export type SystemEmailTemplateType =
   | "invitation"
@@ -16,6 +17,7 @@ export type SystemEmailTemplate = {
   type: SystemEmailTemplateType;
   subject: string;
   html: string;
+  locale: PublicLocale;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -66,6 +68,11 @@ async function ensureTable(): Promise<void> {
         CREATE INDEX IF NOT EXISTS eventhub_email_templates_updated_idx
         ON eventhub_email_templates (updated_at DESC)
       `;
+
+      await sql`
+        ALTER TABLE eventhub_email_templates
+        ADD COLUMN IF NOT EXISTS locale TEXT NOT NULL DEFAULT 'pt-BR'
+      `;
     })().catch((error) => {
       initialized = null;
       throw error;
@@ -100,6 +107,9 @@ function normalizeTemplate(value: any): SystemEmailTemplate {
     type: normalizeType(value?.type),
     subject: String(value?.subject || "Mensagem sobre {{evento}}"),
     html: String(value?.html || ""),
+    locale: publicLocales.includes(value?.locale as PublicLocale)
+      ? (value.locale as PublicLocale)
+      : "pt-BR",
     active: value?.active !== false,
     createdAt: String(value?.createdAt || value?.created_at || now),
     updatedAt: String(value?.updatedAt || value?.updated_at || now),
@@ -118,6 +128,7 @@ export async function listSystemEmailTemplates(): Promise<SystemEmailTemplate[]>
       type,
       subject,
       html,
+      locale,
       active,
       created_at,
       updated_at
@@ -142,6 +153,7 @@ export async function getSystemEmailTemplate(
       type,
       subject,
       html,
+      locale,
       active,
       created_at,
       updated_at
@@ -194,6 +206,7 @@ export async function saveSystemEmailTemplate(
       type,
       subject,
       html,
+      locale,
       active,
       created_at,
       updated_at
@@ -205,6 +218,7 @@ export async function saveSystemEmailTemplate(
       ${template.type},
       ${template.subject},
       ${template.html},
+      ${template.locale},
       ${template.active},
       ${template.createdAt},
       ${template.updatedAt}
@@ -215,6 +229,7 @@ export async function saveSystemEmailTemplate(
       type = EXCLUDED.type,
       subject = EXCLUDED.subject,
       html = EXCLUDED.html,
+      locale = EXCLUDED.locale,
       active = EXCLUDED.active,
       updated_at = EXCLUDED.updated_at
   `;
