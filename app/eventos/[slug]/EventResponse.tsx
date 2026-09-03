@@ -8,7 +8,13 @@ import type {
   EventGuest,
   EventItem,
 } from "@/lib/event-platform-store";
-import { getEventUiCopy, publicLocales, type PublicLocale } from "@/lib/public-i18n";
+import {
+  getEventUiCopy,
+  publicLocaleLabels,
+  publicLocales,
+  resolvePublicLocale,
+  type PublicLocale,
+} from "@/lib/public-i18n";
 
 type EventResponseProps = {
   event: EventItem;
@@ -138,12 +144,10 @@ export default function EventResponse({
   error,
 }: EventResponseProps) {
   const [locale, setLocale] = useState<PublicLocale>(() => {
-    if (typeof navigator === "undefined") return "pt-BR";
-    const language = navigator.language.toLowerCase();
-    return language.startsWith("pt") ? "pt-BR" : language.startsWith("es") ? "es" : language.startsWith("it") ? "it" : "en";
+    return resolvePublicLocale(guest?.locale || event.defaultLocale);
   });
   const t = getEventUiCopy(locale);
-  const languagePicker = <label style={{ display: "block", textAlign: "right", marginBottom: 16 }}>{t.language}<select value={locale} onChange={(change) => setLocale(change.target.value as PublicLocale)} style={{ marginLeft: 8 }}><option value="pt-BR">PT-BR</option>{publicLocales.filter((item) => item !== "pt-BR").map((item) => <option key={item} value={item}>{item.toUpperCase()}</option>)}</select></label>;
+  const languagePicker = <label style={{ display: "block", textAlign: "right", marginBottom: 16 }}>{t.language}<select value={locale} onChange={(change) => setLocale(change.target.value as PublicLocale)} style={{ marginLeft: 8 }}>{publicLocales.map((item) => <option key={item} value={item}>{publicLocaleLabels[item]}</option>)}</select></label>;
   if (error || !guest) {
     return (
       <section className="event-message">

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { getEvent, saveEvent } from "@/lib/event-platform-store";
+import { publicEventUrl } from "@/lib/public-event-url";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
       publicRegistrationEnabled: true,
     });
 
-    const requestUrl = new URL(_request.url);
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin).replace(/\/$/, "");
-    const link = `${baseUrl}/eventos/${updated.slug}/inscrever`;
+    const link = publicEventUrl(`/eventos/${updated.slug}/inscrever`);
 
     return NextResponse.json({ ok: true, link });
   } catch (error) {

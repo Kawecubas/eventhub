@@ -2,16 +2,24 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import type { EventFormField, EventItem } from "@/lib/event-platform-store";
-import { getPublicMessages, publicLocales, type PublicLocale } from "@/lib/public-i18n";
+import {
+  getPublicMessages,
+  publicLocaleLabels,
+  publicLocales,
+  resolvePublicLocale,
+  type PublicLocale,
+} from "@/lib/public-i18n";
 
-function initialLocale(): PublicLocale {
+function browserLocale(): PublicLocale {
   if (typeof navigator === "undefined") return "pt-BR";
   const language = navigator.language.toLowerCase();
   return language.startsWith("pt") ? "pt-BR" : language.startsWith("es") ? "es" : language.startsWith("it") ? "it" : "en";
 }
 
 export default function PublicRegistration({ event }: { event: EventItem }) {
-  const [locale, setLocale] = useState<PublicLocale>(initialLocale);
+  const [locale, setLocale] = useState<PublicLocale>(() =>
+    resolvePublicLocale(event.defaultLocale, browserLocale())
+  );
   const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [company, setCompany] = useState(""); const [phone, setPhone] = useState("");
   const [selectedDate, setSelectedDate] = useState(""); const [participants, setParticipants] = useState(1); const [notes, setNotes] = useState("");
   const [answers, setAnswers] = useState<Record<string, string | boolean | number>>({}); const [error, setError] = useState(""); const [loading, setLoading] = useState(false); const [done, setDone] = useState(false);
@@ -49,7 +57,18 @@ export default function PublicRegistration({ event }: { event: EventItem }) {
   function renderField(field: EventFormField) {
     if (field.type === "content") return <section className="dynamic-content-field" key={field.id}><h3>{field.label}</h3>{field.description && <p>{field.description}</p>}</section>;
     if (field.type === "event_dates") return <label key={field.id}>{field.label || t.date}{field.required ? " *" : ""}<select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}><option value="">{t.select}</option>{event.dates.map((date) => <option key={date.id} value={date.label}>{date.label}</option>)}</select></label>;
-    if (field.type === "participants") return <label key={field.id}>{field.label || t.participants}{field.required ? " *" : ""}<input type="number" min="1" max={maxParticipants} value={participants} onChange={(e) => setParticipants(Math.min(maxParticipants, Math.max(1, Number(e.target.value) || 1)))} /><small>{t.maxPeople.replace("{count}", String(maxParticipants))}</small></label>;
+    if (field.type === "participants") return (
+      <div className="participant-quantity" key={field.id}>
+        <span>{field.label || t.participants}{field.required ? " *" : ""}</span>
+        {field.description && <p className="field-description">{field.description}</p>}
+        <div className="quantity-control" role="group" aria-label={field.label || t.participants}>
+          <button type="button" onClick={() => setParticipants((current) => Math.max(1, current - 1))} disabled={participants <= 1} aria-label={`${t.participants} -`}>−</button>
+          <output aria-live="polite">{participants}</output>
+          <button type="button" onClick={() => setParticipants((current) => Math.min(maxParticipants, current + 1))} disabled={participants >= maxParticipants} aria-label={`${t.participants} +`}>+</button>
+        </div>
+        <small>{t.maxPeople.replace("{count}", String(maxParticipants))}</small>
+      </div>
+    );
     if (field.type === "notes") return <label key={field.id}>{field.label || t.notes}{field.required ? " *" : ""}<textarea value={notes} placeholder={field.placeholder} onChange={(e) => setNotes(e.target.value)} /></label>;
     if (field.type === "checkbox") return <label className="dynamic-checkbox" key={field.id}><input type="checkbox" checked={answers[field.id] === true} onChange={(e) => updateAnswer(field.id, e.target.checked)} /><span><strong>{field.label}{field.required ? " *" : ""}</strong>{field.description && <small>{field.description}</small>}</span></label>;
     if (field.type === "select") return <label key={field.id}>{field.label}{field.required ? " *" : ""}<select value={String(answers[field.id] || "")} onChange={(e) => updateAnswer(field.id, e.target.value)}><option value="">{field.placeholder || t.select}</option>{(field.options || []).map((option) => <option key={option}>{option}</option>)}</select></label>;
@@ -65,8 +84,7 @@ export default function PublicRegistration({ event }: { event: EventItem }) {
           <label className="public-language-picker">
             {t.language}
             <select value={locale} onChange={(e) => setLocale(e.target.value as PublicLocale)}>
-              <option value="pt-BR">PT-BR</option>
-              {publicLocales.filter((item) => item !== "pt-BR").map((item) => <option key={item} value={item}>{item.toUpperCase()}</option>)}
+              {publicLocales.map((item) => <option key={item} value={item}>{publicLocaleLabels[item]}</option>)}
             </select>
           </label>
         </div>

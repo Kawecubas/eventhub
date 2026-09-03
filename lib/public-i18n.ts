@@ -2,6 +2,22 @@ export const publicLocales = ["pt-BR", "en", "es", "it"] as const;
 
 export type PublicLocale = (typeof publicLocales)[number];
 
+export const publicLocaleLabels: Record<PublicLocale, string> = {
+  "pt-BR": "Português (Brasil)",
+  en: "English",
+  es: "Español",
+  it: "Italiano",
+};
+
+export function resolvePublicLocale(
+  value: string | undefined | null,
+  fallback: PublicLocale = "pt-BR"
+): PublicLocale {
+  return publicLocales.includes(value as PublicLocale)
+    ? (value as PublicLocale)
+    : fallback;
+}
+
 const messages = {
   "pt-BR": {
     language: "Idioma", registration: "Inscrição", register: "Inscreva-se no evento",

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { neon } from "@neondatabase/serverless";
+import type { PublicLocale } from "@/lib/public-i18n";
 
 export type EventDate = {
   id: string;
@@ -54,6 +55,7 @@ export type EventGuest = {
 export type EventItem = {
   id: string;
   slug: string;
+  defaultLocale: PublicLocale;
   name: string;
   description: string;
   location: string;
@@ -235,10 +237,18 @@ function normalizeFormField(
 function normalizeEvent(value: unknown): EventItem {
   const source = (value ?? {}) as Partial<EventItem>;
   const now = new Date().toISOString();
+  const defaultLocale =
+    source.defaultLocale === "en" ||
+    source.defaultLocale === "es" ||
+    source.defaultLocale === "it" ||
+    source.defaultLocale === "pt-BR"
+      ? source.defaultLocale
+      : "pt-BR";
 
   return {
     id: String(source.id ?? ""),
     slug: normalizeSlug(String(source.slug ?? "")),
+    defaultLocale,
     name: String(source.name ?? ""),
     description: String(source.description ?? ""),
     location: String(source.location ?? ""),
@@ -424,6 +434,7 @@ export async function saveEvent(
   const base: EventItem = existing ?? {
     id: crypto.randomUUID(),
     slug: input.slug,
+    defaultLocale: "pt-BR",
     name: input.name,
     description: "",
     location: "",

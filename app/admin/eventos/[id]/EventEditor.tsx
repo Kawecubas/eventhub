@@ -4,6 +4,12 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import type { EventItem } from "@/lib/event-platform-store";
+import {
+  publicLocaleLabels,
+  publicLocales,
+  type PublicLocale,
+} from "@/lib/public-i18n";
+import { publicEventUrl } from "@/lib/public-event-url";
 import GuestImporter from "./GuestImporter";
 import GenerateGenericLinkButton from "@/components/GenerateGenericLinkButton";
 import "./editor.css";
@@ -11,6 +17,7 @@ import "./editor.css";
 const empty = {
   name: "",
   slug: "",
+  defaultLocale: "pt-BR" as PublicLocale,
   description: "",
   location: "",
   startInfo: "",
@@ -171,7 +178,26 @@ export default function EventEditor({
               onChange={(change) =>
                 setEvent({ ...event, slug: change.target.value })
               }
+              placeholder="meu-evento-2026"
             />
+          </label>
+          <label>
+            Idioma principal do evento
+            <select
+              value={event.defaultLocale}
+              onChange={(change) =>
+                setEvent({
+                  ...event,
+                  defaultLocale: change.target.value as PublicLocale,
+                })
+              }
+            >
+              {publicLocales.map((locale) => (
+                <option key={locale} value={locale}>
+                  {publicLocaleLabels[locale]}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Descrição
@@ -401,7 +427,9 @@ export default function EventEditor({
                             type="button"
                             onClick={() =>
                               navigator.clipboard.writeText(
-                                `${location.origin}/eventos/${event.slug}?token=${guest.token}`
+                                publicEventUrl(
+                                  `/eventos/${event.slug}?token=${encodeURIComponent(guest.token)}`
+                                )
                               )
                             }
                           >

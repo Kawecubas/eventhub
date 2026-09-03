@@ -11,7 +11,7 @@ export async function sendCheckinEmail(
   if (!guest.checkinToken) return;
 
   const settings = await getCompanySettings();
-  const language = guest.locale || "pt-BR";
+  const language = guest.locale || event.defaultLocale || "pt-BR";
   const copy = {
     "pt-BR": { title: "Inscrição confirmada! 🎉", hello: "Olá", confirmed: "Sua participação em", suffix: "foi confirmada com sucesso.", location: "Local", date: "Data", attendees: "Participantes", instruction: "Apresente o QR Code abaixo na entrada do evento para realizar seu check-in:", code: "Código de check-in" },
     en: { title: "Registration confirmed! 🎉", hello: "Hello", confirmed: "Your participation in", suffix: "has been confirmed.", location: "Location", date: "Date", attendees: "Attendees", instruction: "Show the QR code below at the event entrance to check in:", code: "Check-in code" },

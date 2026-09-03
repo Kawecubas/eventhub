@@ -4,6 +4,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { getCompanySettings } from "@/lib/company-settings";
 import { sendEmail } from "@/lib/email-service";
 import { getEvent, markSent } from "@/lib/event-platform-store";
+import { publicEventUrl } from "@/lib/public-event-url";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,7 +36,6 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   const settings = await getCompanySettings();
-  const base = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
   const selectedGuests = event.guests.filter((guest) =>
     guestIds.includes(guest.id)
   );
@@ -46,7 +46,9 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   for (const guest of selectedGuests) {
     try {
-      const link = `${base}/eventos/${event.slug}?token=${guest.token}`;
+      const link = publicEventUrl(
+        `/eventos/${event.slug}?token=${encodeURIComponent(guest.token)}`
+      );
       const values = {
         nome: guest.name,
         empresa: guest.company || "",
