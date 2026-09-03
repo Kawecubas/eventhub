@@ -576,18 +576,46 @@ export async function findGuest(
 
   const event = await getEventBySlug(normalizedSlug);
 
+  const findGuestInEvent = (
+    currentEvent: EventItem
+  ): EventGuest | undefined =>
+    currentEvent.guests.find(
+      (item) =>
+        String(item.token ?? "").trim() === normalizedToken
+    );
+
+  const fallbackByToken = async () => {
+    const events = await listEvents();
+
+    for (const currentEvent of events) {
+      const matchedGuest = findGuestInEvent(currentEvent);
+
+      if (matchedGuest) {
+        console.warn("[FIND GUEST] Token encontrado em outro evento:", {
+          requestedSlug: normalizedSlug,
+          matchedEventId: currentEvent.id,
+          matchedSlug: currentEvent.slug,
+        });
+
+        return {
+          event: currentEvent,
+          guest: matchedGuest,
+        };
+      }
+    }
+
+    return null;
+  };
+
   if (!event) {
     console.error("[FIND GUEST] Evento não encontrado:", {
       slug: normalizedSlug,
     });
 
-    return null;
+    return fallbackByToken();
   }
 
-  const guest = event.guests.find(
-    (item) =>
-      String(item.token ?? "").trim() === normalizedToken
-  );
+  const guest = findGuestInEvent(event);
 
   if (!guest) {
     console.error("[FIND GUEST] Token não encontrado:", {
@@ -597,7 +625,7 @@ export async function findGuest(
       guestCount: event.guests.length,
     });
 
-    return null;
+    return fallbackByToken();
   }
 
   return {
@@ -618,10 +646,9 @@ export async function respond(
     formAnswers?: Record<string, string | boolean | number>;
   }
 ): Promise<EventGuest | null> {
-  const event = await getEvent(slug);
-  const guest = event?.guests.find(
-    (item) => item.token.trim() === String(token ?? "").trim()
-  );
+  const result = await findGuest(slug, token);
+  const event = result?.event;
+  const guest = result?.guest;
 
   if (!event || !guest) {
     return null;

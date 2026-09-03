@@ -35,13 +35,13 @@ export default async function Page({
     : query.token;
 
   const token = String(rawToken ?? "").trim();
-  const event = await getEventBySlug(slug);
+  const result = token ? await findGuest(slug, token) : null;
+  const event = result?.event ?? (await getEventBySlug(slug));
 
   if (!event) {
     notFound();
   }
 
-  const result = token ? await findGuest(slug, token) : null;
   const guest = result?.guest ?? null;
 
   let error: string | null = null;
