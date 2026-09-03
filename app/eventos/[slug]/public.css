@@ -21,6 +21,32 @@
   margin: 0 auto;
 }
 
+.public-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.public-language-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.public-language-picker select {
+  width: auto;
+  padding: 8px 10px;
+  border: 1px solid #ccd5dd;
+  border-radius: 8px;
+  background: #fff;
+  color: #17212b;
+  font: inherit;
+}
+
 .event-logo {
   display: block;
   width: auto;
