@@ -19,6 +19,7 @@ export type CompanySettings = {
   loginTitle: string;
   loginDescription: string;
   footerText: string;
+  footerLogo: string;
   footerBackgroundColor: string;
   footerTextColor: string;
   emailFrom: string;
@@ -51,6 +52,7 @@ const DEFAULT_SETTINGS: CompanySettings = {
   loginDescription:
     "Acesse para criar eventos, gerenciar convidados e acompanhar confirmações.",
   footerText: "Gestão de eventos",
+  footerLogo: "",
   footerBackgroundColor: "#f3f6f9",
   footerTextColor: "#697681",
   emailFrom: process.env.EMAIL_FROM ?? "",
@@ -159,6 +161,7 @@ function normalizeSettings(value: unknown): CompanySettings {
     loginDescription:
       text(source.loginDescription) || DEFAULT_SETTINGS.loginDescription,
     footerText: text(source.footerText) || DEFAULT_SETTINGS.footerText,
+    footerLogo: text(source.footerLogo),
     footerBackgroundColor: color(source.footerBackgroundColor, DEFAULT_SETTINGS.footerBackgroundColor),
     footerTextColor: color(source.footerTextColor, DEFAULT_SETTINGS.footerTextColor),
     emailFrom: text(source.emailFrom) || process.env.EMAIL_FROM || "",
