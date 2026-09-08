@@ -7,6 +7,7 @@ import {
 } from "@/lib/event-platform-store";
 
 import EventResponse from "./EventResponse";
+import EventFooter from "@/components/EventFooter";
 
 import "./public.css";
 import "./comprovante.css";
@@ -144,9 +145,7 @@ export default async function Page({
         </div>
       </section>
 
-      <footer className="event-footer">
-        Gestão de eventos
-      </footer>
+      <EventFooter policyUrl={event.privacyPolicyUrl} policyText={event.privacyPolicyText} />
     </main>
   );
 }

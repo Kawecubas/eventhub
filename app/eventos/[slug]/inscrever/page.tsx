@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/event-platform-store";
 import PublicRegistration from "./PublicRegistration";
+import EventFooter from "@/components/EventFooter";
 import "../public.css";
 import "../form-builder-public.css";
 
@@ -13,5 +14,5 @@ export default async function PublicRegistrationPage({ params }: { params: Promi
   if (!event) notFound();
 
   const style = { "--primary": event.primaryColor || "#173b57", "--secondary": event.secondaryColor || "#d5a44c" } as CSSProperties;
-  return <main className="public-event" style={style}><PublicRegistration event={event} /></main>;
+  return <main className="public-event" style={style}><PublicRegistration event={event} /><EventFooter policyUrl={event.privacyPolicyUrl} policyText={event.privacyPolicyText} /></main>;
 }

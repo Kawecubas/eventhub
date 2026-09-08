@@ -10,6 +10,7 @@ import {
   type PublicLocale,
 } from "@/lib/public-i18n";
 import { publicEventUrl } from "@/lib/public-event-url";
+import { privacyPolicyUrl } from "@/lib/privacy-policy";
 import GuestImporter from "./GuestImporter";
 import GenerateGenericLinkButton from "@/components/GenerateGenericLinkButton";
 import "./editor.css";
@@ -19,6 +20,8 @@ const empty = {
   slug: "",
   defaultLocale: "pt-BR" as PublicLocale,
   description: "",
+  privacyPolicyUrl: "",
+  privacyPolicyText: "",
   location: "",
   startInfo: "",
   primaryColor: "#173b57",
@@ -66,6 +69,10 @@ export default function EventEditor({
   }
 
   async function save() {
+    if (event.privacyPolicyUrl?.trim() && !privacyPolicyUrl(event.privacyPolicyUrl)) {
+      alert("Informe um link válido para a política de privacidade, começando com https:// ou http://.");
+      return;
+    }
     const response = await fetch("/api/eventos", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -77,6 +84,8 @@ export default function EventEditor({
       setEvent(data);
       router.replace(`/admin/eventos/${data.id}?aba=${tab}`);
       alert("Evento salvo.");
+    } else {
+      alert(data.error || "Não foi possível salvar o evento.");
     }
   }
 
@@ -225,6 +234,26 @@ export default function EventEditor({
                 setEvent({ ...event, description: change.target.value })
               }
             />
+          </label>
+          <label>
+            Link da política de privacidade
+            <input
+              type="url"
+              value={event.privacyPolicyUrl || ""}
+              onChange={(change) => setEvent({ ...event, privacyPolicyUrl: change.target.value })}
+              placeholder="https://gambini.group/pt-pt/privacy-policy/"
+            />
+            <small>Opcional. Aparece no rodapé das páginas de confirmação e inscrição. Deixe vazio para ocultar.</small>
+          </label>
+          <label>
+            Mensagem sobre a política de privacidade
+            <textarea
+              rows={4}
+              value={event.privacyPolicyText || ""}
+              onChange={(change) => setEvent({ ...event, privacyPolicyText: change.target.value })}
+              placeholder="Escreva a mensagem sobre a política de privacidade do evento."
+            />
+            <small>Opcional. Aparece acima do link nas páginas de confirmação e inscrição.</small>
           </label>
           <div className="cols">
             <label>

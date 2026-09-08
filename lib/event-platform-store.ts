@@ -75,6 +75,8 @@ export type EventItem = {
   createdAt: string;
   updatedAt: string;
   publicRegistrationEnabled?: boolean;
+  privacyPolicyUrl?: string;
+  privacyPolicyText?: string;
 };
 
 export type GuestImportInput = {
@@ -251,6 +253,8 @@ function normalizeEvent(value: unknown): EventItem {
     defaultLocale,
     name: String(source.name ?? ""),
     description: String(source.description ?? ""),
+    privacyPolicyUrl: String(source.privacyPolicyUrl ?? "").trim(),
+    privacyPolicyText: String(source.privacyPolicyText ?? "").trim(),
     location: String(source.location ?? ""),
     startInfo: String(source.startInfo ?? ""),
     primaryColor: String(source.primaryColor ?? "#173b57"),

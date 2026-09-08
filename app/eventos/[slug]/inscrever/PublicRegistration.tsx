@@ -131,7 +131,6 @@ export default function PublicRegistration({ event }: { event: EventItem }) {
         </div>
       </section>
 
-      <footer className="event-footer">Gestão de eventos</footer>
     </>
   );
 }

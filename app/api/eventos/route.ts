@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isAdmin } from "@/lib/admin-auth";
+import { privacyPolicyUrl } from "@/lib/privacy-policy";
 import {
   listEvents,
   saveEvent,
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
 
     const name = String(body.name ?? "").trim();
     const slug = String(body.slug ?? "").trim();
+    const policyUrl = String(body.privacyPolicyUrl ?? "").trim();
+
+    if (policyUrl && !privacyPolicyUrl(policyUrl)) {
+      return NextResponse.json(
+        { error: "Informe um link válido para a política de privacidade, começando com https:// ou http://." },
+        { status: 400 }
+      );
+    }
 
     if (!name || !slug) {
       return NextResponse.json(
