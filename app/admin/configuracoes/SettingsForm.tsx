@@ -76,6 +76,12 @@ export default function SettingsForm({ initial }: { initial: CompanySettings }) 
           <label className="full">Título<input value={form.loginTitle} onChange={(e)=>set("loginTitle",e.target.value)}/></label>
           <label className="full">Descrição<textarea value={form.loginDescription} onChange={(e)=>set("loginDescription",e.target.value)}/></label>
           <label className="full">Rodapé da empresa<textarea rows={3} value={form.footerText} onChange={(e)=>set("footerText",e.target.value)}/><small>Exibido na tela de login e nas páginas de preenchimento e confirmação dos eventos.</small></label>
+          <label>Cor de fundo do rodapé dos eventos<div className="color-field"><input aria-label="Escolher cor de fundo do rodapé" type="color" value={form.footerBackgroundColor} onChange={(e)=>set("footerBackgroundColor",e.target.value)}/><input aria-label="Código da cor de fundo do rodapé" value={form.footerBackgroundColor} pattern="#[0-9a-fA-F]{6}" title="Use uma cor no formato #173b57" onChange={(e)=>set("footerBackgroundColor",e.target.value)}/></div></label>
+          <label>Cor do texto e link do rodapé<div className="color-field"><input aria-label="Escolher cor do texto do rodapé" type="color" value={form.footerTextColor} onChange={(e)=>set("footerTextColor",e.target.value)}/><input aria-label="Código da cor do texto do rodapé" value={form.footerTextColor} pattern="#[0-9a-fA-F]{6}" title="Use uma cor no formato #ffffff" onChange={(e)=>set("footerTextColor",e.target.value)}/></div></label>
+          <div className="full" style={{ backgroundColor: form.footerBackgroundColor, color: form.footerTextColor, padding: "24px", textAlign: "center", borderRadius: "8px", overflowWrap: "anywhere" }}>
+            <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{form.footerText || "Prévia do rodapé"}</p>
+            <span style={{ display: "block", marginTop: "12px", textDecoration: "underline" }}>Política de privacidade</span>
+          </div>
         </div>
       </section>
 

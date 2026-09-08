@@ -390,7 +390,7 @@
   display: block;
   width: fit-content;
   margin: 10px auto 0;
-  color: #415462;
+  color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
