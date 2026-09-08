@@ -75,7 +75,7 @@ export default function SettingsForm({ initial }: { initial: CompanySettings }) 
         <div className="settings-grid">
           <label className="full">Título<input value={form.loginTitle} onChange={(e)=>set("loginTitle",e.target.value)}/></label>
           <label className="full">Descrição<textarea value={form.loginDescription} onChange={(e)=>set("loginDescription",e.target.value)}/></label>
-          <label className="full">Rodapé<input value={form.footerText} onChange={(e)=>set("footerText",e.target.value)}/></label>
+          <label className="full">Rodapé da empresa<textarea rows={3} value={form.footerText} onChange={(e)=>set("footerText",e.target.value)}/><small>Exibido na tela de login e nas páginas de preenchimento e confirmação dos eventos.</small></label>
         </div>
       </section>
 
