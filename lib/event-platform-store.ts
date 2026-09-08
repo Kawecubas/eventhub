@@ -116,7 +116,8 @@ function getDatabaseUrl(): string {
 }
 
 function database() {
-  return neon(getDatabaseUrl());
+  // Avoid serving stale event data from Next.js's HTTP fetch cache.
+  return neon(getDatabaseUrl(), { fetchOptions: { cache: "no-store" } });
 }
 
 let initialized: Promise<void> | null = null;

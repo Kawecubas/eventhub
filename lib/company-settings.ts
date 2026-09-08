@@ -84,7 +84,8 @@ function databaseUrl(): string {
 }
 
 function sqlClient() {
-  return neon(databaseUrl());
+  // Public pages must read the latest settings, even without an admin session.
+  return neon(databaseUrl(), { fetchOptions: { cache: "no-store" } });
 }
 
 let initialized: Promise<void> | null = null;
