@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import type { PublicLocale } from "@/lib/public-i18n";
+import { GAMBINI_OPENHOUSE_EVENT_ID, validateConfirmations, type ConfirmationRow } from "./gambini-confirmations";
 
 export type EventDate = {
   id: string;
@@ -734,6 +735,48 @@ export async function respond(
 
   await persistEvent(event);
   return guest;
+}
+
+export async function importGambiniConfirmations(id: string, rows: ConfirmationRow[], expectedVersion?: string) {
+  if (id !== GAMBINI_OPENHOUSE_EVENT_ID) return null;
+  await ensureDatabase();
+  const sql = database();
+  const [stored] = await sql`
+    SELECT data, xmin::text AS version FROM eventhub_events
+    WHERE id = ${id}
+  `;
+  if (!stored) return null;
+  if (expectedVersion !== undefined && stored.version !== expectedVersion) {
+    return { conflict: true } as const;
+  }
+
+  const event = normalizeEvent(stored.data);
+  const { results, updates } = validateConfirmations(event, rows);
+  if (expectedVersion === undefined || !updates.length) {
+    return { results, version: String(stored.version), imported: [] };
+  }
+
+  const now = new Date().toISOString();
+  const changes = updates.map(({ guest, slot }) => ({
+    id: guest.id,
+    status: "confirmed" as const,
+    selectedDate: slot,
+    participants: guest.participants || 1,
+    respondedAt: now,
+    checkinToken: guest.checkinToken || crypto.randomBytes(16).toString("hex"),
+  }));
+  const byId = new Map(changes.map((guest) => [guest.id, guest]));
+  const guests = (stored.data as EventItem).guests.map((guest) =>
+    byId.has(String(guest.id)) ? { ...guest, ...byId.get(String(guest.id)) } : guest
+  );
+  const changed = await sql`
+    UPDATE eventhub_events
+    SET data = data || ${JSON.stringify({ guests, updatedAt: now })}::jsonb, updated_at = ${now}
+    WHERE id = ${id} AND xmin::text = ${expectedVersion}
+    RETURNING xmin::text AS version
+  `;
+  if (!changed.length) return { conflict: true } as const;
+  return { results, version: String(changed[0].version), imported: changes };
 }
 
 export async function markSent(

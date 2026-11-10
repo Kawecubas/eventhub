@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { getEvent } from "@/lib/event-platform-store";
+import { GAMBINI_OPENHOUSE_EVENT_ID, splitConfirmationSlot } from "@/lib/gambini-confirmations";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -63,7 +64,16 @@ export async function GET(
       : "",
   }));
 
-  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const confirmationModel = event.id === GAMBINI_OPENHOUSE_EVENT_ID;
+  const worksheet = XLSX.utils.json_to_sheet(
+    confirmationModel ? rows.map((row) => ({ ...row, DATA: "", HORA: "" })) : rows
+  );
+  if (confirmationModel && !rows.length) {
+    XLSX.utils.sheet_add_aoa(worksheet, [[
+      "Nome", "Empresa", "Email", "Telefone", "Status", "Participantes",
+      "Data escolhida", "Observação", "Convite enviado em", "Respondido em", "DATA", "HORA",
+    ]], { origin: "A1" });
+  }
   worksheet["!cols"] = [
     { wch: 28 },
     { wch: 24 },
@@ -76,6 +86,13 @@ export async function GET(
     { wch: 22 },
     { wch: 22 },
   ];
+  if (confirmationModel) {
+    worksheet["!cols"].push({ wch: 16 }, { wch: 24 });
+    for (let row = 2; row <= rows.length + 1; row += 1) {
+      worksheet[`K${row}`].z = "@";
+      worksheet[`L${row}`].z = "@";
+    }
+  }
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Convidados");
@@ -105,6 +122,15 @@ export async function GET(
   ]);
   summary["!cols"] = [{ wch: 30 }, { wch: 34 }];
   XLSX.utils.book_append_sheet(workbook, summary, "Resumo");
+  if (confirmationModel) {
+    const slots = event.dates.flatMap(({ label }) => {
+      const slot = splitConfirmationSlot(label);
+      return slot ? [[slot.date, slot.time]] : [];
+    });
+    const options = XLSX.utils.aoa_to_sheet([["DATA", "HORA"], ...slots]);
+    options["!cols"] = [{ wch: 16 }, { wch: 24 }];
+    XLSX.utils.book_append_sheet(workbook, options, "Horários disponíveis");
+  }
 
   const buffer = XLSX.write(workbook, {
     type: "buffer",

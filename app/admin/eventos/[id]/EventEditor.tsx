@@ -12,6 +12,8 @@ import {
 import { publicEventUrl } from "@/lib/public-event-url";
 import { privacyPolicyUrl } from "@/lib/privacy-policy";
 import GuestImporter from "./GuestImporter";
+import ConfirmationImporter from "./ConfirmationImporter";
+import { GAMBINI_OPENHOUSE_EVENT_ID } from "@/lib/gambini-confirmations";
 import GenerateGenericLinkButton from "@/components/GenerateGenericLinkButton";
 import "./editor.css";
 
@@ -417,6 +419,16 @@ export default function EventEditor({
                   setEvent({ ...event, guests: [...guests, ...event.guests] })
                 }
               />
+
+              {initial?.id === GAMBINI_OPENHOUSE_EVENT_ID && (
+                <ConfirmationImporter eventId={event.id} onImported={(guests) => {
+                  const byId = new Map(guests.map((guest) => [guest.id, guest]));
+                  setEvent((current: EventItem) => ({
+                    ...current,
+                    guests: current.guests.map((guest) => ({ ...guest, ...byId.get(guest.id) })),
+                  }));
+                }} />
+              )}
 
               <div className="guest-toolbar">
                 <div className="guest-toolbar-actions">
